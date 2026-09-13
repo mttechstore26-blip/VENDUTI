@@ -1,0 +1,16 @@
+.env
+*.session
+*.session-journal
+__pycache__/
+*.pyc
+data/
+*.db
+*.sqlite
+*.sqlite3
+venv/
+.venv/
+.DS_Store
+*.log
+*.backup
+*.backup-*
+*.live-backup
