@@ -7,8 +7,20 @@ from database import get_connection
 # TITOLO
 # ---------------------------------------------------------
 
-st.title("📊 MT TECH Dashboard")
-st.caption("Analisi dello storico degli annunci venduti")
+st.markdown(
+    """
+    <div class="mt-hero">
+        <div class="mt-hero-top">
+            <div>
+                <div class="mt-hero-title">📊 MT TECH Market Intelligence</div>
+                <div class="mt-hero-subtitle">Controllo rapido di vendite, prezzi e velocità di mercato</div>
+            </div>
+            <div class="mt-live"><span class="mt-live-dot"></span> Monitor attivo</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ---------------------------------------------------------
