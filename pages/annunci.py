@@ -5,8 +5,20 @@ import pandas as pd
 from database import get_connection
 
 
-st.title("📦 Annunci venduti")
-st.caption("Ricerca e analisi degli annunci rilevati come venduti")
+st.markdown(
+    """
+    <div class="mt-hero">
+        <div class="mt-hero-top">
+            <div>
+                <div class="mt-hero-title">📦 Annunci venduti</div>
+                <div class="mt-hero-subtitle">Trova cosa si vende, a che prezzo e in quanto tempo</div>
+            </div>
+            <div class="mt-live"><span class="mt-live-dot"></span> Dati aggiornati</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_data(ttl=60)
