@@ -4,8 +4,20 @@ import pandas as pd
 from database import get_connection
 
 
-st.title("🏷️ Categorie")
-st.caption("Confronto delle performance di vendita per categoria")
+st.markdown(
+    """
+    <div class="mt-hero">
+        <div class="mt-hero-top">
+            <div>
+                <div class="mt-hero-title">🏷️ Categorie</div>
+                <div class="mt-hero-subtitle">Confronta volumi, prezzi e velocità di vendita per categoria</div>
+            </div>
+            <div class="mt-live"><span class="mt-live-dot"></span> Analisi live</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_data(ttl=60)
