@@ -4,8 +4,20 @@ import pandas as pd
 from database import get_connection
 
 
-st.title("💰 Analisi prezzi")
-st.caption("Distribuzione, fasce di prezzo e confronto tra categorie")
+st.markdown(
+    """
+    <div class="mt-hero">
+        <div class="mt-hero-top">
+            <div>
+                <div class="mt-hero-title">💰 Analisi prezzi</div>
+                <div class="mt-hero-subtitle">Leggi fasce di prezzo, medie e distribuzione del mercato</div>
+            </div>
+            <div class="mt-live"><span class="mt-live-dot"></span> Prezzi aggiornati</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_data(ttl=60)
