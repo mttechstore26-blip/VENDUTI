@@ -4,8 +4,20 @@ import pandas as pd
 from database import get_connection
 
 
-st.title("📈 Trend")
-st.caption("Andamento delle vendite nel tempo e confronto dei periodi")
+st.markdown(
+    """
+    <div class="mt-hero">
+        <div class="mt-hero-top">
+            <div>
+                <div class="mt-hero-title">📈 Trend</div>
+                <div class="mt-hero-subtitle">Segui l'andamento delle vendite e confronta i periodi</div>
+            </div>
+            <div class="mt-live"><span class="mt-live-dot"></span> Trend attivi</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_data(ttl=60)
