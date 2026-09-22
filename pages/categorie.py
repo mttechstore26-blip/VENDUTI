@@ -1,4 +1,5 @@
 import re
+from html import escape
 
 import pandas as pd
 import streamlit as st
@@ -520,39 +521,52 @@ if family_options:
         }
     )
 
-    family_table = family_listings[
-        [
-            "Titolo",
-            "Link",
-            "Prezzo",
-            "Venduto in",
-            "Rilevato venduto",
-        ]
-    ].copy()
+    rows = []
+    for _, row in family_listings.iterrows():
+        titolo = escape(str(row["Titolo"]))
+        prezzo = escape(str(row["Prezzo"]))
+        venduto_in = escape(str(row["Venduto in"]))
+        rilevato = escape(str(row["Rilevato venduto"]))
+        link = str(row["Link"]).strip() if pd.notna(row["Link"]) else ""
 
-    family_table["Titolo"] = family_table.apply(
-        lambda row: row["Link"] if pd.notna(row["Link"]) and str(row["Link"]).strip() else row["Titolo"],
-        axis=1,
-    )
+        if link.startswith("http://") or link.startswith("https://"):
+            titolo_html = (
+                f'<a href="{escape(link, quote=True)}" target="_blank" '
+                f'style="font-weight:700;text-decoration:none">{titolo}</a>'
+            )
+        else:
+            titolo_html = titolo
 
-    st.dataframe(
-        family_table[
-            [
-                "Titolo",
-                "Prezzo",
-                "Venduto in",
-                "Rilevato venduto",
-            ]
-        ],
-        column_config={
-            "Titolo": st.column_config.LinkColumn(
-                "Titolo",
-                display_text=r"https?://.*",
-            ),
-        },
-        width="stretch",
-        hide_index=True,
-        height=500,
+        rows.append(
+            "<tr>"
+            f"<td>{titolo_html}</td>"
+            f"<td>{prezzo}</td>"
+            f"<td>{venduto_in}</td>"
+            f"<td>{rilevato}</td>"
+            "</tr>"
+        )
+
+    st.markdown(
+        """
+        <div style="overflow-x:auto;max-height:520px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr>
+                    <th style="text-align:left;padding:10px">Titolo</th>
+                    <th style="text-align:left;padding:10px">Prezzo</th>
+                    <th style="text-align:left;padding:10px">Venduto in</th>
+                    <th style="text-align:left;padding:10px">Rilevato venduto</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        + "".join(rows)
+        + """
+            </tbody>
+        </table>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 
