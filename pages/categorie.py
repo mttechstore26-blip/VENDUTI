@@ -79,6 +79,51 @@ def format_duration(hours):
     return f"{minutes}m"
 
 
+def speed_emoji(hours):
+    if pd.isna(hours) or hours < 0:
+        return ""
+
+    if hours <= 6:
+        return "🔥🔥🔥🔥"
+
+    if hours <= 12:
+        return "🔥🔥🔥"
+
+    if hours <= 24:
+        return "🔥🔥"
+
+    if hours <= 48:
+        return "🔥"
+
+    return "🐢"
+
+
+def speed_category(hours):
+    if pd.isna(hours) or hours < 0:
+        return "Non disponibile"
+
+    if hours <= 6:
+        return "🔥🔥🔥🔥 0-6 ore"
+
+    if hours <= 12:
+        return "🔥🔥🔥 6-12 ore"
+
+    if hours <= 24:
+        return "🔥🔥 12-24 ore"
+
+    if hours <= 48:
+        return "🔥 24-48 ore"
+
+    return "🐢 Oltre 48 ore"
+
+
+def format_speed(hours):
+    if pd.isna(hours) or hours < 0:
+        return "-"
+
+    return f"{speed_emoji(hours)} {format_duration(hours)}"
+
+
 def format_delta(value):
     if pd.isna(value):
         return "-"
@@ -406,7 +451,7 @@ with c2:
 with c3:
     st.metric(
         "⚡ Tempo mediano",
-        format_duration(detail_row["Tempo_mediano_ore"]),
+        format_speed(detail_row["Tempo_mediano_ore"]),
         format_delta(detail_row["Trend_velocita_%"]) + " velocità"
         if pd.notna(detail_row["Trend_velocita_%"])
         else "-",
@@ -468,7 +513,7 @@ family_stats["Trend_volume_%"] = family_stats.apply(
 )
 
 family_stats["Prezzo"] = family_stats["Prezzo_mediano"].apply(format_price)
-family_stats["Tempo vendita"] = family_stats["Tempo_mediano_ore"].apply(format_duration)
+family_stats["Tempo vendita"] = family_stats["Tempo_mediano_ore"].apply(format_speed)
 family_stats["Trend 30 gg"] = family_stats["Trend_volume_%"].apply(format_delta)
 
 family_stats = family_stats.sort_values(
@@ -513,7 +558,7 @@ if family_options:
     )
 
     family_listings["Prezzo"] = family_listings["price"].apply(format_price)
-    family_listings["Venduto in"] = family_listings["sale_time_hours"].apply(format_duration)
+    family_listings["Venduto in"] = family_listings["sale_time_hours"].apply(format_speed)
     family_listings["Rilevato venduto"] = (
         family_listings["detected_sold_at"]
         .dt.tz_convert("Europe/Rome")
@@ -659,7 +704,7 @@ with col3:
     )
     st.metric(
         "⚡ Tempo mediano",
-        format_duration(current_speed),
+        format_speed(current_speed),
         delta_speed_label,
         delta_color="inverse",
     )
@@ -704,7 +749,7 @@ radar["Segnale"] = radar.apply(market_signal, axis=1)
 
 radar_display = radar.copy()
 radar_display["Prezzo mediano"] = radar_display["Prezzo_mediano"].apply(format_price)
-radar_display["Tempo mediano"] = radar_display["Tempo_mediano_ore"].apply(format_duration)
+radar_display["Tempo mediano"] = radar_display["Tempo_mediano_ore"].apply(format_speed)
 radar_display["Trend venduti"] = radar_display["Trend_volume_%"].apply(format_delta)
 radar_display["Trend prezzo"] = radar_display["Trend_prezzo_%"].apply(format_delta)
 radar_display["Velocità vs prec."] = radar_display["Trend_velocita_%"].apply(format_delta)
@@ -787,7 +832,7 @@ with col2:
         .copy()
     )
 
-    top_speed["Tempo mediano"] = top_speed["Tempo_mediano_ore"].apply(format_duration)
+    top_speed["Tempo mediano"] = top_speed["Tempo_mediano_ore"].apply(format_speed)
     top_speed["Velocità vs prec."] = top_speed["Trend_velocita_%"].apply(format_delta)
     top_speed = top_speed.rename(columns={"category": "Categoria"})
 
