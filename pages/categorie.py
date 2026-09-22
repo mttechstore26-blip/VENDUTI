@@ -893,6 +893,79 @@ if selected_rows:
             format_speed(famiglia_tempo_mediano),
         )
 
+    st.markdown("#### 📈 Andamento prezzo")
+
+    periodo_prezzo = st.segmented_control(
+        "Periodo",
+        options=[30, 60, 90],
+        default=30,
+        format_func=lambda days: f"{days} giorni",
+        key=f"price_period_{selected_family}",
+    )
+
+    if periodo_prezzo is None:
+        periodo_prezzo = 30
+
+    price_cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=periodo_prezzo)
+
+    price_history = selected_family_data[
+        selected_family_data["detected_sold_at"] >= price_cutoff
+    ].copy()
+
+    if not price_history.empty:
+        price_history["Giorno"] = (
+            price_history["detected_sold_at"]
+            .dt.tz_convert("Europe/Rome")
+            .dt.date
+        )
+
+        daily_price = (
+            price_history.groupby("Giorno", as_index=False)
+            .agg(
+                Prezzo_mediano=("price", "median"),
+                Prezzo_medio=("price", "mean"),
+                Venduti=("price", "count"),
+            )
+            .sort_values("Giorno")
+        )
+
+        st.line_chart(
+            daily_price.set_index("Giorno")[["Prezzo_mediano"]],
+            x_label="Giorno",
+            y_label="Prezzo mediano (€)",
+            height=320,
+        )
+
+        p1, p2, p3 = st.columns(3)
+
+        with p1:
+            st.metric(
+                f"🎯 Mediana {periodo_prezzo}g",
+                format_price(price_history["price"].median()),
+            )
+
+        with p2:
+            st.metric(
+                f"💰 Media {periodo_prezzo}g",
+                format_price(price_history["price"].mean()),
+            )
+
+        with p3:
+            st.metric(
+                f"📦 Venduti {periodo_prezzo}g",
+                len(price_history),
+            )
+
+        st.caption(
+            "Il grafico usa il prezzo mediano giornaliero, "
+            "più resistente agli annunci fuori mercato rispetto alla media."
+        )
+    else:
+        st.info(
+            f"Nessun venduto per {selected_family} "
+            f"negli ultimi {periodo_prezzo} giorni."
+        )
+
     family_listings = (
         selected_family_data
         .sort_values(
