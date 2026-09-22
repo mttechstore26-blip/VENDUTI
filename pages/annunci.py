@@ -1,4 +1,5 @@
 import re
+from html import escape
 import streamlit as st
 import pandas as pd
 
@@ -489,18 +490,17 @@ table = filtered.iloc[start_row:end_row][
     ]
 ].copy()
 
+table["Prezzo"] = table["price"].apply(format_price)
 table["Venduto in"] = [
     f"{speed_emoji(hours)} {format_duration(hours)}".strip()
     for hours in table["sale_time_hours"]
 ]
-
 table["Pubblicato"] = (
     table["posted_at"]
     .dt.tz_convert("Europe/Rome")
     .dt.strftime("%d/%m/%Y %H:%M")
     .fillna("-")
 )
-
 table["Venduto rilevato"] = (
     table["detected_sold_at"]
     .dt.tz_convert("Europe/Rome")
@@ -508,43 +508,58 @@ table["Venduto rilevato"] = (
     .fillna("-")
 )
 
-table = table.rename(
-    columns={
-        "title": "Prodotto",
-        "url": "Link",
-        "category": "Categoria",
-        "price": "Prezzo",
-    }
-)
+rows = []
+for _, row in table.iterrows():
+    titolo = escape(str(row["title"]))
+    categoria = escape(str(row["category"]))
+    prezzo = escape(str(row["Prezzo"]))
+    venduto_in = escape(str(row["Venduto in"]))
+    pubblicato = escape(str(row["Pubblicato"]))
+    rilevato = escape(str(row["Venduto rilevato"]))
+    link = str(row["url"]).strip() if pd.notna(row["url"]) else ""
 
-# Il titolo resta leggibile, ma la colonna Prodotto usa direttamente l'URL
-# così il testo visualizzato è cliccabile senza una colonna "Apri" separata.
-table["Prodotto link"] = table["Link"]
+    if link.startswith("http://") or link.startswith("https://"):
+        titolo_html = (
+            f'<a href="{escape(link, quote=True)}" target="_blank" '
+            f'style="font-weight:700;text-decoration:none">{titolo}</a>'
+        )
+    else:
+        titolo_html = titolo
 
-st.dataframe(
-    table[
-        [
-            "Prodotto link",
-            "Categoria",
-            "Prezzo",
-            "Venduto in",
-            "Pubblicato",
-            "Venduto rilevato",
-        ]
-    ],
-    width="stretch",
-    hide_index=True,
-    height=560,
-    column_config={
-        "Prodotto link": st.column_config.LinkColumn(
-            "Prodotto",
-            display_text=r"([^/]+)(?=\.htm$)",
-        ),
-        "Prezzo": st.column_config.NumberColumn(
-            "Prezzo",
-            format="€ %.2f",
-        ),
-    },
+    rows.append(
+        "<tr>"
+        f"<td>{titolo_html}</td>"
+        f"<td>{categoria}</td>"
+        f"<td>{prezzo}</td>"
+        f"<td>{venduto_in}</td>"
+        f"<td>{pubblicato}</td>"
+        f"<td>{rilevato}</td>"
+        "</tr>"
+    )
+
+st.markdown(
+    """
+    <div style="overflow-x:auto;max-height:560px;overflow-y:auto">
+    <table style="width:100%;border-collapse:collapse">
+        <thead>
+            <tr>
+                <th style="text-align:left;padding:10px">Prodotto</th>
+                <th style="text-align:left;padding:10px">Categoria</th>
+                <th style="text-align:left;padding:10px">Prezzo</th>
+                <th style="text-align:left;padding:10px">Venduto in</th>
+                <th style="text-align:left;padding:10px">Pubblicato</th>
+                <th style="text-align:left;padding:10px">Venduto rilevato</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    + "".join(rows)
+    + """
+        </tbody>
+    </table>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 
