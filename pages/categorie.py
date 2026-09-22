@@ -140,6 +140,8 @@ def normalize_text(value):
         .replace("petnax", "pentax")
         .replace("zhyun", "zhiyun")
         .replace("mimi mavic", "mini mavic")
+        .replace("go pro", "gopro")
+        .replace("insta 360", "insta360")
         .replace("metà", "meta")
     )
     text = re.sub(r"[^a-z0-9\s]", " ", text)
@@ -204,16 +206,13 @@ def detect_family(title, category=None):
         return label
 
     insta360 = re.search(
-        r"\binsta\s*360\s+(go\s*\d+[a-z]?|x\s*\d+|ace\s*pro\s*\d*|one\s*[a-z0-9]+)(?:\s+(\d{2,4}gb))?\b",
+        r"\binsta\s*360\s+(go\s*\d+[a-z]?|x\s*\d+|ace\s*pro\s*\d*|one\s*[a-z0-9]+)(?:\s+\d{2,4}gb)?\b",
         text,
     )
     if insta360:
-        model, storage = insta360.groups()
+        model = insta360.group(1)
         model = re.sub(r"\s+", " ", model).strip()
-        label = f"Insta360 {model.upper() if model.startswith('x') else model.title()}"
-        if storage:
-            label += f" {storage.upper()}"
-        return label
+        return f"Insta360 {model.upper() if model.startswith('x') else model.title()}"
 
     meta_quest = re.search(
         r"\b(?:meta\s+)?quest\s*(2|3\s*s|3|pro)\b",
@@ -235,15 +234,12 @@ def detect_family(title, category=None):
         return "GoPro MAX"
 
     gopro = re.search(
-        r"\bgopro(?:\s+hero)?\s*(\d{1,2})(?:\s+(black|silver|white))?\b",
+        r"\bgopro(?:\s+hero)?\s*(\d{1,2})(?:\s+(?:black|silver|white))?\b",
         text,
     )
     if gopro:
-        generation, edition = gopro.groups()
-        label = f"GoPro Hero {generation}"
-        if edition:
-            label += f" {edition.title()}"
-        return label
+        generation = gopro.group(1)
+        return f"GoPro Hero {generation}"
 
     # Fotografia: riconoscimento marca + modello reale.
     # Evita famiglie troppo generiche come solo "Canon", "Nikon" o "Sony".
