@@ -486,6 +486,59 @@ def detect_family(title, category=None):
             focal = re.sub(r"\s+", "-", focal)
             return f"{brand} {focal}mm".strip()
 
+    # Ultimo pass Fotografia: prodotti specifici rimasti in Altro
+    final_photo_patterns = [
+        (r"\blobotim\b", "Lobotim Timer"),
+        (r"\bfototrappola\s+zeiss\b", "Zeiss Fototrappola"),
+        (r"\bzaino\s+manfrotto\b", "Manfrotto Zaino"),
+        (r"\bsony\s+upc\s*21\s*l\b", "Sony UPC-21L"),
+        (r"\bdji\s+batteria.*\blito\b", "DJI Lito Batteria"),
+        (r"\bnikon\s+z\s*40\s*mm\b", "Nikon Z 40mm"),
+        (r"\bpentax\s+k[\-\s]?s2\b", "Pentax K-S2"),
+        (r"\bnikon\s+md[\-\s]?4\b", "Nikon MD-4"),
+        (r"\bcanon\s+charger\s+nc[\-\s]?e2\b", "Canon NC-E2"),
+        (r"\bborsa\s+fotografica\s+ona\b", "ONA Borsa fotografica"),
+        (r"\bteleprompter\s+x12.*\bneewer\b", "Neewer X12"),
+        (r"\bhasselblad\s+filtro\s+uv\s+86\s*mm\b", "Hasselblad Filtro UV 86mm"),
+        (r"\bnikon\s+mb\s*d18\b", "Nikon MB-D18"),
+        (r"\bcanon\s+fd\s+300\s+f4\s+l\b", "Canon FD 300mm F4 L"),
+        (r"\bzeiss\s+distagon\b", "Zeiss Distagon"),
+        (r"\bmagicfiz\s+smallrig\b", "SmallRig MagicFIZ"),
+        (r"\bsoligor.*\bspotmeter\b", "Soligor Spotmeter"),
+        (r"\bsony\s+ecm[\-\s]?m1\b", "Sony ECM-M1"),
+        (r"\bzwo\s+pe200\b|\bpe200\s+zwo\b", "ZWO PE200"),
+        (r"\bdji.*\bneo\s*2\b", "DJI Neo 2"),
+        (r"\bprofoto\s+connect\s+pro\b", "Profoto Connect Pro"),
+        (r"\bcanon\s+pixma\s+g550\b", "Canon PIXMA G550"),
+        (r"\bmeade\b.*\boculari\b|\boculari\s+meade\b", "Meade Oculari"),
+        (r"\batomos\s+accessory\s+kit\b", "Atomos Accessory Kit"),
+        (r"\bvevor\b.*\bmicroscopio\b|\bmicroscopio\s+vevor\b", "VEVOR Microscopio"),
+        (r"\bminolta\s+7s\b", "Minolta 7S"),
+        (r"\bzeiss\s+ikon\s+super\s+ikonta\b", "Zeiss Ikon Super Ikonta"),
+        (r"\bvideomic\s+pro\b", "Rode VideoMic Pro"),
+        (r"\bdji\s+lito\s*1\s+rc[\-\s]?n3\b", "DJI Lito 1 RC-N3"),
+        (r"\bmovmax\s+blade\s+arm\b", "MOVMAX Blade Arm"),
+        (r"\bgopro\s+piu\s+accessori\b", "GoPro"),
+        (r"\bnikon\s+reflex\s+d5500\b", "Nikon D5500"),
+        (r"\bsony\s+55\s+1\s*8\b", "Sony 55mm F1.8"),
+        (r"\bsigma.*\b20\s+1\s*8\b", "Sigma 20mm F1.8"),
+        (r"\bcalumet\s+8x10\b", "Calumet 8x10"),
+        (r"\bteleobiettivo\s+zeiss\s+2\s*35x\b", "Zeiss 2.35x"),
+    ]
+    for pattern, label in final_photo_patterns:
+        if re.search(pattern, text):
+            return label
+
+    # Gruppi accessori utili quando il prodotto è chiaro ma manca un modello specifico.
+    if re.search(r"\bobbiettiv[oi]\s+per\s+canon\b|\bobiettiv[oi]\s+per\s+canon\b", text):
+        return "Canon Obiettivi"
+
+    if re.search(r"\bdue\s+obiettivi\s+nikon\b|\bobbiettivi\s+nikon\b|\bobiettivi\s+nikon\b", text):
+        return "Nikon Obiettivi"
+
+    if re.search(r"\bstabilizzatore\s+gimbal\b|\bstabilizatore\s+gimbal\b", text):
+        return "Gimbal / Stabilizzatore"
+
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
         (r"\blenovo\s+ideapad\b", "Lenovo IdeaPad"),
