@@ -700,29 +700,36 @@ family_stats = family_stats.sort_values(
     ascending=[False, True],
 )
 
-st.dataframe(
-    family_stats[
-        [
-            "Famiglia",
-            "Venduti",
-            "Trend 30 gg",
-            "Prezzo",
-            "Tempo vendita",
-        ]
-    ],
+family_table = family_stats[
+    [
+        "Famiglia",
+        "Venduti",
+        "Trend 30 gg",
+        "Prezzo",
+        "Tempo vendita",
+    ]
+].reset_index(drop=True)
+
+family_event = st.dataframe(
+    family_table,
     width="stretch",
     hide_index=True,
     height=420,
+    on_select="rerun",
+    selection_mode="single-row",
 )
 
+selected_rows = []
+if family_event is not None:
+    try:
+        selected_rows = family_event.selection.rows
+    except Exception:
+        selected_rows = []
 
-family_options = family_stats["Famiglia"].tolist()
+if selected_rows:
+    selected_family = family_table.iloc[selected_rows[0]]["Famiglia"]
 
-if family_options:
-    selected_family = st.selectbox(
-        "Mostra gli annunci di",
-        family_options,
-    )
+    st.caption(f"📌 Selezionato: **{selected_family}**")
 
     family_listings = (
         detail[
