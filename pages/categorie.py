@@ -161,6 +161,10 @@ def normalize_text(value):
         .replace("potal", "portal")
         .replace("nitendo", "nintendo")
         .replace("swich", "switch")
+        .replace("poket", "pocket")
+        .replace("petnax", "pentax")
+        .replace("zhyun", "zhiyun")
+        .replace("mimi mavic", "mini mavic")
         .replace("metà", "meta")
     )
     text = re.sub(r"[^a-z0-9\s]", " ", text)
@@ -365,6 +369,121 @@ def detect_family(title, category=None):
         focal = re.sub(r"\s+", "-", lens_focal_match.group(1))
         focal = focal.replace("--", "-")
         return f"{brand} {focal}mm"
+
+    # Fotografia: famiglie/modelli aggiuntivi ricavati dai titoli reali
+    extra_photo_patterns = [
+        (r"\bpolaroid\s+sx[\-\s]?70\b", "Polaroid SX-70"),
+        (r"\bmamiya\s+universal\b", "Mamiya Universal"),
+        (r"\bhorizon\s+202\b", "Horizon 202"),
+        (r"\bseestar\s+s30\b", "Seestar S30"),
+        (r"\bminox\s+35\s*ml\b", "Minox 35 ML"),
+        (r"\batomos\s+shinobi\s*(ii|2)?\b", "Atomos Shinobi"),
+        (r"\btour\s*box\s+neo\b", "TourBox Neo"),
+        (r"\bzhiyun\s+crane\s*3s\b", "Zhiyun Crane 3S"),
+        (r"\bricoh\s+wg[\-\s]?6\b", "Ricoh WG-6"),
+        (r"\bricoh\s+theta\s+v\b", "Ricoh Theta V"),
+        (r"\bricoh\s+gr\s*(ii|2)\b", "Ricoh GR II"),
+        (r"\bricoh\s+gr1\b", "Ricoh GR1"),
+        (r"\bcontax\s+t2\b", "Contax T2"),
+        (r"\brolleicord\b", "Rolleicord"),
+        (r"\brollei\s+35\s*se\b", "Rollei 35 SE"),
+        (r"\bkodak\s+pixpro\s+fz55\b", "Kodak Pixpro FZ55"),
+        (r"\bautel\s+evo\s+nano\s+plus\b", "Autel Evo Nano+"),
+        (r"\bfimi\s+x8\s+se\b", "FIMI X8 SE"),
+        (r"\bgarmin\s+virb\s+ultra\s*30\b", "Garmin Virb Ultra 30"),
+        (r"\bflir\s+one\s+pro\b", "FLIR One Pro"),
+        (r"\bzwo\s+asiair\s+plus\b", "ZWO ASIAIR Plus"),
+        (r"\bsinar\s+p\s+4x5\b", "Sinar P 4x5"),
+        (r"\barax\s+60|\bkiev\s+60\b", "Arax/Kiev 60"),
+        (r"\bcanonet\s+ql17\s+giii\b", "Canonet QL17 GIII"),
+        (r"\btopcon\s+re2\b", "Topcon RE2"),
+        (r"\bgodox\s+tl60\b", "Godox TL60"),
+        (r"\bgodox\s+dp600iii[\-\s]?v\b", "Godox DP600III-V"),
+        (r"\baputure\s+mc\s+pro\b", "Aputure MC Pro"),
+        (r"\bneewer\s+nl660\b", "Neewer NL660"),
+        (r"\bmetabones\s+iv\b", "Metabones IV"),
+        (r"\bsmallrig\s+vb99\b", "SmallRig VB99"),
+        (r"\btilta\s+nucleus\s+nano\b", "Tilta Nucleus Nano"),
+        (r"\bsky[\-\s]?watcher\s+star\s+adventurer\b", "Sky-Watcher Star Adventurer"),
+        (r"\bgossen\s+sinar\s+six\b", "Gossen Sinar Six"),
+        (r"\bdurst\s+601\b", "Durst 601"),
+        (r"\blab[\-\s]?box\b", "LAB-BOX"),
+        (r"\bnisi\s+swift\b", "NiSi Swift"),
+        (r"\bdivevolk\s+sea\s+touch\s+4\s+max\b", "Divevolk Sea Touch 4 Max"),
+        (r"\bdavinci\s+studio\b", "DaVinci Resolve Studio"),
+        (r"\bosmo\s+pocket\s*3\b", "DJI Osmo Pocket 3"),
+        (r"\bosmo\s+action\s*4\b", "DJI Osmo Action 4"),
+        (r"\bosmo\s+mobile\s+8p\b", "DJI Osmo Mobile 8P"),
+        (r"\bosmo\s+nano\b", "DJI Osmo Nano"),
+        (r"\bdji\s+spark\b", "DJI Spark"),
+        (r"\bdji\s+ronin[\-\s]?s\b", "DJI Ronin-S"),
+        (r"\bdji\s+fpv\s+remote\s+controller\s*3\b", "DJI FPV Remote Controller 3"),
+        (r"\bdji\s+rc\b", "DJI RC"),
+        (r"\binsta(?:360)?\s+flow\s+2\s+pro\b", "Insta360 Flow 2 Pro"),
+        (r"\binsta(?:360)?\s+ace\s+pro\s*2\b", "Insta360 Ace Pro 2"),
+        (r"\binsta(?:360)?\s+go\s+3\s*(?:e|/)?\s*3s\b", "Insta360 GO 3 / 3S"),
+        (r"\bgopro\s+max\s*2\b|\bgopro\s+max2\b", "GoPro MAX 2"),
+    ]
+
+    for pattern, label in extra_photo_patterns:
+        if re.search(pattern, text):
+            return label
+
+    # Nikon storiche / serie 1 / compatte nominate senza pattern moderni
+    nikon_extra = [
+        (r"\bnikon\s+1\s*j1\b", "Nikon 1 J1"),
+        (r"\bnikon\s+v1\b", "Nikon 1 V1"),
+        (r"\bnikon\s+fe[\-\s]?2\b", "Nikon FE-2"),
+        (r"\bnikon\s+f\s*501\b", "Nikon F501"),
+        (r"\bnikon\s+f2\b", "Nikon F2"),
+        (r"\bnikon\s+f\b", "Nikon F"),
+        (r"\bnikon\s+p7800\b", "Nikon P7800"),
+        (r"\bnikon\s+d[t]?7100\b", "Nikon D7100"),
+    ]
+    for pattern, label in nikon_extra:
+        if re.search(pattern, text):
+            return label
+
+    # Canon compatte / bridge nominate senza PowerShot/IXUS
+    canon_extra = [
+        (r"\bcanon\s+s120\b", "Canon S120"),
+        (r"\bcanon\s+sx60\b", "Canon SX60"),
+    ]
+    for pattern, label in canon_extra:
+        if re.search(pattern, text):
+            return label
+
+    # Sony modelli scritti in forme più colloquiali
+    sony_extra = [
+        (r"\bsony\s+serie\s+a\s*5000\b", "Sony A5000"),
+        (r"\bsony\s+fx3\b", "Sony FX3"),
+        (r"\bsony\s+fx30\b", "Sony FX30"),
+    ]
+    for pattern, label in sony_extra:
+        if re.search(pattern, text):
+            return label
+
+    # Obiettivi senza 'mm' ma con focale chiaramente espressa
+    lens_loose = [
+        (r"\b(nikkor|nikon)\s+(24[\-\s]120)\b", "Nikon"),
+        (r"\b(tokina).*?(11[\-\s]16)\b", "Tokina"),
+        (r"\b(sigma)\s+(105)\s+2[.,]8\b", "Sigma"),
+        (r"\b(samyang)\s+(14)\s+f?\s*2[.,]8\b", "Samyang"),
+        (r"\b(sigma).*?\b(20)\s+1[.,]8\b", "Sigma"),
+        (r"\b(sigma)\s*30\s*mm\b", "Sigma"),
+        (r"\b(lumix)\s+(14[\-\s]140)\b", "Panasonic Lumix"),
+        (r"\b(komura)\s+(47)\s*mm\b", "Komura"),
+        (r"\b(rodenstock).*?\b(80)\s*mm\b", "Rodenstock"),
+        (r"\b(takumar).*?\b(90)\s*mm\b", "Takumar"),
+        (r"\b(leitz|summicron).*?\b(50)r?\b", "Leica Summicron"),
+    ]
+    for pattern, brand in lens_loose:
+        match = re.search(pattern, text)
+        if match:
+            nums = [g for g in match.groups() if g and re.search(r"\d", g)]
+            focal = nums[-1] if nums else ""
+            focal = re.sub(r"\s+", "-", focal)
+            return f"{brand} {focal}mm".strip()
 
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
