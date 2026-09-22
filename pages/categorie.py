@@ -540,6 +540,26 @@ def apply_recurring_families(dataframe):
     return result
 
 
+
+def apply_manual_family_overrides(dataframe):
+    result = dataframe.copy()
+
+    # Correzioni puntuali per annunci con titolo troppo generico
+    # ma modello verificato manualmente.
+    overrides = {
+        "661292338": "Xbox Series S",
+    }
+
+    for needle, family in overrides.items():
+        mask = result["url"].fillna("").astype(str).str.contains(
+            needle,
+            regex=False,
+        )
+        result.loc[mask, "Famiglia"] = family
+
+    return result
+
+
 def aggregate(group):
     return pd.Series(
         {
@@ -599,6 +619,7 @@ df = df[
 
 df["Famiglia"] = df["title"].apply(detect_family)
 df = apply_recurring_families(df)
+df = apply_manual_family_overrides(df)
 
 df = df[df["detected_sold_at"].notna()].copy()
 
