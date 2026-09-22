@@ -40,6 +40,7 @@ def load_data():
         LEFT JOIN monitorings m
             ON l.monitoring_id = m.id
         WHERE l.detected_sold_at IS NOT NULL
+          AND l.detected_sold_at >= datetime('now', '-90 days')
     """
 
     df = pd.read_sql_query(query, conn)
@@ -811,60 +812,73 @@ def aggregate(group):
     )
 
 
-df = load_data()
+@st.cache_data(ttl=60, show_spinner=False)
+def prepare_data():
+    """Carica e prepara i dati una sola volta per ciclo cache.
+
+    Questa è la parte più costosa della pagina: parsing date, calcolo tempi,
+    riconoscimento famiglie e clustering. Tenerla in cache rende i rerun
+    causati da selectbox/dataframe praticamente immediati.
+    """
+    data = load_data()
+
+    if data.empty:
+        return data
+
+    data["price"] = pd.to_numeric(data["price"], errors="coerce")
+
+    data["posted_at"] = pd.to_datetime(
+        data["posted_at"],
+        errors="coerce",
+    )
+
+    data["posted_at"] = (
+        data["posted_at"]
+        .dt.tz_localize(
+            "Europe/Rome",
+            ambiguous="NaT",
+            nonexistent="NaT",
+        )
+        .dt.tz_convert("UTC")
+    )
+
+    data["detected_sold_at"] = pd.to_datetime(
+        data["detected_sold_at"],
+        errors="coerce",
+        utc=True,
+    )
+
+    data["category"] = data["category"].fillna("Senza categoria")
+    data["title"] = data["title"].fillna("Senza titolo")
+
+    data["sale_time_hours"] = (
+        data["detected_sold_at"] - data["posted_at"]
+    ).dt.total_seconds() / 3600
+
+    data.loc[data["sale_time_hours"] < 0, "sale_time_hours"] = pd.NA
+
+    # Esclude dalle analisi gli annunci che hanno impiegato più di 10 giorni.
+    data = data[
+        data["sale_time_hours"].notna()
+        & (data["sale_time_hours"] <= 24 * 10)
+        & data["detected_sold_at"].notna()
+    ].copy()
+
+    data["Famiglia"] = [
+        detect_family(title, category)
+        for title, category in zip(data["title"], data["category"])
+    ]
+    data = apply_recurring_families(data)
+    data = apply_manual_family_overrides(data)
+
+    return data
+
+
+df = prepare_data()
 
 if df.empty:
     st.warning("Nessun dato disponibile.")
     st.stop()
-
-
-df["price"] = pd.to_numeric(df["price"], errors="coerce")
-
-df["posted_at"] = pd.to_datetime(
-    df["posted_at"],
-    errors="coerce",
-)
-
-df["posted_at"] = (
-    df["posted_at"]
-    .dt.tz_localize(
-        "Europe/Rome",
-        ambiguous="NaT",
-        nonexistent="NaT",
-    )
-    .dt.tz_convert("UTC")
-)
-
-df["detected_sold_at"] = pd.to_datetime(
-    df["detected_sold_at"],
-    errors="coerce",
-    utc=True,
-)
-
-df["category"] = df["category"].fillna("Senza categoria")
-df["title"] = df["title"].fillna("Senza titolo")
-
-df["sale_time_hours"] = (
-    df["detected_sold_at"] - df["posted_at"]
-).dt.total_seconds() / 3600
-
-df.loc[df["sale_time_hours"] < 0, "sale_time_hours"] = pd.NA
-
-# Esclude dalle analisi gli annunci che hanno impiegato più di 10 giorni a vendersi.
-# Le righe restano nel database: il filtro vale solo per questa pagina.
-df = df[
-    df["sale_time_hours"].notna()
-    & (df["sale_time_hours"] <= 24 * 10)
-].copy()
-
-df["Famiglia"] = df.apply(
-    lambda row: detect_family(row["title"], row["category"]),
-    axis=1,
-)
-df = apply_recurring_families(df)
-df = apply_manual_family_overrides(df)
-
-df = df[df["detected_sold_at"].notna()].copy()
 
 
 now = pd.Timestamp.now(tz="UTC")
@@ -890,14 +904,24 @@ if current.empty:
 current_cat = (
     current
     .groupby("category", dropna=False)
-    .apply(aggregate)
+    .agg(
+        Venduti=("id", "count"),
+        Prezzo_medio=("price", "mean"),
+        Prezzo_mediano=("price", "median"),
+        Tempo_mediano_ore=("sale_time_hours", "median"),
+    )
     .reset_index()
 )
 
 previous_cat = (
     previous
     .groupby("category", dropna=False)
-    .apply(aggregate)
+    .agg(
+        Venduti=("id", "count"),
+        Prezzo_medio=("price", "mean"),
+        Prezzo_mediano=("price", "median"),
+        Tempo_mediano_ore=("sale_time_hours", "median"),
+    )
     .reset_index()
     if not previous.empty
     else pd.DataFrame(
