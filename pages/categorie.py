@@ -4,7 +4,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from database import get_connection
+from data_cache import load_market_data
 
 
 st.markdown(
@@ -21,32 +21,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
-@st.cache_data(ttl=60)
-def load_data():
-    conn = get_connection()
-
-    query = """
-        SELECT
-            l.id,
-            l.title,
-            l.url,
-            l.price,
-            l.posted_at,
-            l.detected_sold_at,
-            m.name AS category
-        FROM listings l
-        LEFT JOIN monitorings m
-            ON l.monitoring_id = m.id
-        WHERE l.detected_sold_at IS NOT NULL
-          AND l.detected_sold_at >= datetime('now', '-90 days')
-    """
-
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-
-    return df
 
 
 def format_price(value):
@@ -873,36 +847,17 @@ def prepare_data():
     riconoscimento famiglie e clustering. Tenerla in cache rende i rerun
     causati da selectbox/dataframe praticamente immediati.
     """
-    data = load_data()
+    data = load_market_data().copy()
 
     if data.empty:
         return data
 
-    data["price"] = pd.to_numeric(data["price"], errors="coerce")
-
-    data["posted_at"] = pd.to_datetime(
-        data["posted_at"],
-        errors="coerce",
-    )
-
-    data["posted_at"] = (
-        data["posted_at"]
-        .dt.tz_localize(
-            "Europe/Rome",
-            ambiguous="NaT",
-            nonexistent="NaT",
-        )
-        .dt.tz_convert("UTC")
-    )
-
-    data["detected_sold_at"] = pd.to_datetime(
-        data["detected_sold_at"],
-        errors="coerce",
-        utc=True,
-    )
-
-    data["category"] = data["category"].fillna("Senza categoria")
-    data["title"] = data["title"].fillna("Senza titolo")
+    # La pagina usa al massimo 90 giorni di storico.
+    cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=90)
+    data = data[
+        data["detected_sold_at"].notna()
+        & (data["detected_sold_at"] >= cutoff)
+    ].copy()
 
     data["sale_time_hours"] = (
         data["detected_sold_at"] - data["posted_at"]
