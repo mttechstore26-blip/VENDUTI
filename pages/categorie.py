@@ -837,10 +837,43 @@ if selected_rows:
 
     st.caption(f"📌 Selezionato: **{selected_family}**")
 
+    selected_family_data = detail[
+        detail["Famiglia"] == selected_family
+    ].copy()
+
+    famiglia_venduti = len(selected_family_data)
+    famiglia_prezzo_medio = selected_family_data["price"].mean()
+    famiglia_prezzo_mediano = selected_family_data["price"].median()
+    famiglia_tempo_mediano = selected_family_data["sale_time_hours"].median()
+
+    fk1, fk2, fk3, fk4 = st.columns(4)
+
+    with fk1:
+        st.metric(
+            "📦 Venduti",
+            famiglia_venduti,
+        )
+
+    with fk2:
+        st.metric(
+            "💰 Prezzo medio",
+            format_price(famiglia_prezzo_medio),
+        )
+
+    with fk3:
+        st.metric(
+            "🎯 Prezzo mediano",
+            format_price(famiglia_prezzo_mediano),
+        )
+
+    with fk4:
+        st.metric(
+            "⚡ Tempo mediano",
+            format_speed(famiglia_tempo_mediano),
+        )
+
     family_listings = (
-        detail[
-            detail["Famiglia"] == selected_family
-        ]
+        selected_family_data
         .sort_values(
             "detected_sold_at",
             ascending=False,
