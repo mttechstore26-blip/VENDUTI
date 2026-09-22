@@ -30,6 +30,7 @@ def load_data():
         SELECT
             l.id,
             l.title,
+            l.url,
             l.price,
             l.posted_at,
             l.detected_sold_at,
@@ -515,11 +516,27 @@ if family_options:
     family_listings = family_listings.rename(
         columns={
             "title": "Titolo",
+            "url": "Link",
         }
     )
 
+    family_table = family_listings[
+        [
+            "Titolo",
+            "Link",
+            "Prezzo",
+            "Venduto in",
+            "Rilevato venduto",
+        ]
+    ].copy()
+
+    family_table["Titolo"] = family_table.apply(
+        lambda row: row["Link"] if pd.notna(row["Link"]) and str(row["Link"]).strip() else row["Titolo"],
+        axis=1,
+    )
+
     st.dataframe(
-        family_listings[
+        family_table[
             [
                 "Titolo",
                 "Prezzo",
@@ -527,6 +544,12 @@ if family_options:
                 "Rilevato venduto",
             ]
         ],
+        column_config={
+            "Titolo": st.column_config.LinkColumn(
+                "Titolo",
+                display_text=r"https?://.*",
+            ),
+        },
         width="stretch",
         hide_index=True,
         height=500,
