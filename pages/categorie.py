@@ -519,14 +519,62 @@ def detect_family(title, category=None):
         if re.search(r"\blego\b", text):
             return "LEGO"
 
-        # Pokémon / TCG.
-        if re.search(
+        # Pokémon / TCG: sottofamiglie utili al sourcing.
+        pokemon_match = re.search(
             r"\bpokemon\b|\bpoke\b|\bcharizard\b|\bblastoise\b|"
             r"\bmew\b|\bmewtwo\b|\blugia\b|\braichu\b|\bcelebi\b|"
-            r"\bvictini\b|\bmoltres\b|\bespeon\b|\bbulbasaur\b|\bsquirt",
+            r"\bvictini\b|\bmoltres\b|\bespeon\b|\bbulbasaur\b|"
+            r"\bsquirt|\bdragonite\b|\bdarkrai\b|\bzoroark\b",
             text,
-        ):
-            return "Pokémon TCG"
+        )
+
+        if pokemon_match:
+            # 1. Graded ha precedenza: PSA/BGS/GRAAD/AI grading ecc.
+            if re.search(
+                r"\bpsa\s*\d+(?:\.\d+)?\b|\bbgs\s*\d+(?:\.\d+)?\b|"
+                r"\bgraad\s*\d+(?:\.\d+)?\b|\baigrading\s*\d+(?:\.\d+)?\b|"
+                r"\bgradat[oa]\b|\bgrading\b",
+                text,
+            ):
+                return "Pokémon • Graded"
+
+            # 2. Sigillato: box, ETB, blister, booster, SPC e prodotti sealed.
+            if re.search(
+                r"\betb\b|\bbox\b|\bblister\b|\bbooster\b|"
+                r"\bspc\b|\bsealed\b|\bsigillat|\bdisplay\b|"
+                r"\bcollection\s+box\b|\bscatola\s+speciale\b",
+                text,
+            ):
+                return "Pokémon • Sigillato"
+
+            # 3. 30° anniversario come segmento dedicato.
+            if re.search(
+                r"\b30\s*(?:th|o|°)?\s*annivers|\b30\s*esimo\b|"
+                r"\btrentesimo\b|\bprimi\s+compagni\b",
+                text,
+            ):
+                return "Pokémon • 30° Anniversario"
+
+            # 4. Vintage / set storici.
+            if re.search(
+                r"\bvintage\b|\b1st\s+edition\b|\bprima\s+edizione\b|"
+                r"\bjungle\b|\bfossil\b|\bteam\s+rocket\b|"
+                r"\bbase\s+set\b|\bphantom\s+forces\b",
+                text,
+            ):
+                return "Pokémon • Vintage"
+
+            # 5. Lotti / collezioni / set misti.
+            if re.search(
+                r"\blotto\b|\blotti\b|\bcollezion|\bset\s+carte\b|"
+                r"\bcarte\s+assortite\b|\bcoppia\s+carte\b|"
+                r"\bbinder\b|\braccoglitore\b",
+                text,
+            ):
+                return "Pokémon • Lotti / Collezioni"
+
+            # 6. Tutto il resto: singole carte.
+            return "Pokémon • Carte singole"
 
         # Magic: The Gathering.
         if re.search(
@@ -1298,6 +1346,49 @@ family_stats["Prezzo"] = family_stats["Prezzo_mediano"].apply(format_price)
 family_stats["Tempo vendita"] = family_stats["Tempo_mediano_ore"].apply(format_speed)
 family_stats["Trend 30 gg"] = family_stats["Trend_volume_%"].apply(format_delta)
 
+# Vista aggregata Pokémon TCG oltre alle sottofamiglie.
+if selected_category and "collezionismo" in normalize_text(selected_category):
+    pokemon_prefix = "Pokémon • "
+    pokemon_current = detail[
+        detail["Famiglia"].astype(str).str.startswith(pokemon_prefix)
+    ].copy()
+    pokemon_previous = detail_prev[
+        detail_prev["Famiglia"].astype(str).str.startswith(pokemon_prefix)
+    ].copy()
+
+    if not pokemon_current.empty:
+        pokemon_venduti = len(pokemon_current)
+        pokemon_venduti_prec = len(pokemon_previous)
+        pokemon_trend = (
+            ((pokemon_venduti - pokemon_venduti_prec) / pokemon_venduti_prec) * 100
+            if pokemon_venduti_prec > 0
+            else pd.NA
+        )
+
+        pokemon_row = pd.DataFrame(
+            [{
+                "Famiglia": "Pokémon TCG",
+                "Venduti": pokemon_venduti,
+                "Prezzo_mediano": pokemon_current["price"].median(),
+                "Tempo_mediano_ore": pokemon_current["sale_time_hours"].median(),
+                "Venduti_prec": pokemon_venduti_prec,
+                "Prezzo_mediano_prec": (
+                    pokemon_previous["price"].median()
+                    if not pokemon_previous.empty
+                    else pd.NA
+                ),
+                "Trend_volume_%": pokemon_trend,
+                "Prezzo": format_price(pokemon_current["price"].median()),
+                "Tempo vendita": format_speed(pokemon_current["sale_time_hours"].median()),
+                "Trend 30 gg": format_delta(pokemon_trend),
+            }]
+        )
+
+        family_stats = pd.concat(
+            [pokemon_row, family_stats],
+            ignore_index=True,
+        )
+
 family_stats = family_stats.sort_values(
     ["Venduti", "Tempo_mediano_ore"],
     ascending=[False, True],
@@ -1334,9 +1425,14 @@ if selected_rows:
 
     st.caption(f"📌 Selezionato: **{selected_family}**")
 
-    selected_family_data = detail[
-        detail["Famiglia"] == selected_family
-    ].copy()
+    if selected_family == "Pokémon TCG":
+        selected_family_data = detail[
+            detail["Famiglia"].astype(str).str.startswith("Pokémon • ")
+        ].copy()
+    else:
+        selected_family_data = detail[
+            detail["Famiglia"] == selected_family
+        ].copy()
 
     famiglia_venduti = len(selected_family_data)
     famiglia_prezzo_medio = selected_family_data["price"].mean()
@@ -1462,10 +1558,16 @@ if selected_rows:
 
     # Il grafico deve usare tutto lo storico disponibile della famiglia,
     # non il dataset "detail" già limitato agli ultimi 30 giorni.
-    historical_family_data = df[
-        (df["category"] == selected_category)
-        & (df["Famiglia"] == selected_family)
-    ].copy()
+    if selected_family == "Pokémon TCG":
+        historical_family_data = df[
+            (df["category"] == selected_category)
+            & df["Famiglia"].astype(str).str.startswith("Pokémon • ")
+        ].copy()
+    else:
+        historical_family_data = df[
+            (df["category"] == selected_category)
+            & (df["Famiglia"] == selected_family)
+        ].copy()
 
     price_history = historical_family_data[
         historical_family_data["detected_sold_at"] >= price_cutoff
