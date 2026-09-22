@@ -153,11 +153,11 @@ async def import_history():
     from datetime import datetime, timezone
 
     start_date = datetime(
-        2026, 9, 10,
+        2026, 8, 1,
         tzinfo=timezone.utc
     )
 
-    print("🔎 Recupero messaggi ricevuti dal 10/09/2026...")
+    print("🔎 Recupero messaggi ricevuti dal 01/08/2026...")
     print(f"📅 Data iniziale: {start_date}")
 
     imported_count = 0
