@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from database import get_connection
+from data_cache import load_market_data
 
 
 # ---------------------------------------------------------
@@ -24,112 +24,14 @@ st.markdown(
 
 
 # ---------------------------------------------------------
-# CARICAMENTO DATI
+# DATI CONDIVISI E GIÀ NORMALIZZATI
 # ---------------------------------------------------------
 
-@st.cache_data(ttl=60)
-def load_data():
-    conn = get_connection()
-
-    query = """
-        SELECT
-            l.id,
-            l.external_id,
-            l.title,
-            l.url,
-            l.price,
-            l.posted_at,
-            l.detected_sold_at,
-            l.imported_at,
-            l.transaction_status,
-            m.name AS category
-        FROM listings l
-        LEFT JOIN monitorings m
-            ON l.monitoring_id = m.id
-        ORDER BY l.detected_sold_at DESC
-    """
-
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-
-    return df
-
-
-df = load_data()
-
+df = load_market_data().copy()
 
 if df.empty:
     st.warning("Nessun annuncio presente nel database.")
     st.stop()
-
-
-# ---------------------------------------------------------
-# NORMALIZZAZIONE DATI
-# ---------------------------------------------------------
-
-df["posted_at"] = pd.to_datetime(
-    df["posted_at"],
-    errors="coerce",
-)
-
-df["posted_at"] = (
-    df["posted_at"]
-    .dt.tz_localize(
-        "Europe/Rome",
-        ambiguous="NaT",
-        nonexistent="NaT",
-    )
-    .dt.tz_convert("UTC")
-)
-
-df["detected_sold_at"] = pd.to_datetime(
-    df["detected_sold_at"],
-    errors="coerce",
-    utc=True,
-)
-
-df["imported_at"] = pd.to_datetime(
-    df["imported_at"],
-    errors="coerce",
-    utc=True,
-)
-
-df["price"] = pd.to_numeric(
-    df["price"],
-    errors="coerce",
-)
-
-df["category"] = (
-    df["category"]
-    .fillna("Senza categoria")
-)
-
-df["title"] = (
-    df["title"]
-    .fillna("Senza titolo")
-)
-
-# Data principale utilizzata per le analisi
-df["reference_date"] = (
-    df["detected_sold_at"]
-    .fillna(df["posted_at"])
-)
-
-# Tempo di vendita
-df["sale_time_hours"] = (
-    (
-        df["detected_sold_at"]
-        - df["posted_at"]
-    )
-    .dt.total_seconds()
-    / 3600
-)
-
-# Elimina tempi negativi/anomali
-df.loc[
-    df["sale_time_hours"] < 0,
-    "sale_time_hours",
-] = pd.NA
 
 
 # ---------------------------------------------------------
