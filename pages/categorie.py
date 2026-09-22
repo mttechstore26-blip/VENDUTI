@@ -261,6 +261,13 @@ df["sale_time_hours"] = (
 
 df.loc[df["sale_time_hours"] < 0, "sale_time_hours"] = pd.NA
 
+# Esclude dalle analisi gli annunci che hanno impiegato più di 10 giorni a vendersi.
+# Le righe restano nel database: il filtro vale solo per questa pagina.
+df = df[
+    df["sale_time_hours"].notna()
+    & (df["sale_time_hours"] <= 24 * 10)
+].copy()
+
 df["Famiglia"] = df["title"].apply(detect_family)
 
 df = df[df["detected_sold_at"].notna()].copy()
