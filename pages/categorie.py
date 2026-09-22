@@ -167,8 +167,9 @@ def normalize_text(value):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def detect_family(title):
+def detect_family(title, category=None):
     text = normalize_text(title)
+    category_text = normalize_text(category or "")
 
     for generation in ["17", "16", "15", "14", "13", "12", "11"]:
         if re.search(rf"\biphone\s*{generation}\s*pro\s*max\b", text):
@@ -262,38 +263,48 @@ def detect_family(title):
             label += f" {edition.title()}"
         return label
 
-    # Fotocamere: preferisce sempre marca + modello reale alla sola marca.
-    # Supporta anche titoli abbreviati, es. "Canon 1300D" senza "EOS".
+    # Fotografia: riconoscimento marca + modello reale.
+    # Evita famiglie troppo generiche come solo "Canon", "Nikon" o "Sony".
     camera_patterns = [
-        (r"\bcanon(?:\s+eos)?\s+((?:\d{2,4}d|r\d{1,2}|rp|r|m\d{1,2}))\b", "Canon"),
-        (r"\bnikon\s+((?:d\d{2,4}|z\s*\d{1,2}|df))\b", "Nikon"),
-        (r"\bsony(?:\s+alpha)?\s+((?:a|α)?\d{1,4}[a-z]{0,2}|a7\s*(?:ii|iii|iv|v|r|s|c)?|a9\s*(?:ii|iii)?|a1)\b", "Sony"),
-        (r"\bfujifilm\s+((?:x|gfx)[\-\s]?[a-z0-9]+(?:\s*[a-z0-9]+)?)\b", "Fujifilm"),
-        (r"\bfuji\s+((?:x|gfx)[\-\s]?[a-z0-9]+(?:\s*[a-z0-9]+)?)\b", "Fujifilm"),
+        # Canon reflex / mirrorless
+        (r"\bcanon(?:\s+eos)?\s+(\d{2,4}d)\b", "Canon"),
+        (r"\bcanon(?:\s+eos)?\s+(5d|6d|7d)(?:\s+mark\s+(ii|iii|iv))?\b", "Canon"),
+        (r"\bcanon(?:\s+eos)?\s+(r(?:p|\d{1,3})|m\d{1,3})\b", "Canon"),
+
+        # Nikon reflex / mirrorless
+        (r"\bnikon\s+(d\d{2,4})\b", "Nikon"),
+        (r"\bnikon\s+(z\s*(?:fc|\d{1,2}))(?:\s+(ii|iii))?\b", "Nikon"),
+
+        # Sony Alpha / ZV / RX
+        (r"\bsony(?:\s+alpha)?\s+(a?\d{4})\b", "Sony"),
+        (r"\bsony(?:\s+alpha)?\s+(a7[crs]?|a9|a1)(?:\s+(ii|iii|iv|v))?\b", "Sony"),
+        (r"\bsony\s+(zv[\-\s]?(?:e10|1|e1|1f))\b", "Sony"),
+        (r"\bsony\s+(rx\s*\d{1,3}[a-z0-9]*)\b", "Sony"),
+
+        # Fujifilm
+        (r"\b(?:fujifilm|fuji)\s+((?:x|gfx)[\-\s]?[a-z0-9]+(?:\s*[a-z0-9]+)?)\b", "Fujifilm"),
     ]
+
     for pattern, brand in camera_patterns:
         match = re.search(pattern, text)
         if match:
-            model = re.sub(r"\s+", " ", match.group(1)).strip().upper()
+            groups = [g for g in match.groups() if g]
+            model = " ".join(groups)
+            model = re.sub(r"\s+", " ", model).strip().upper()
             model = model.replace("Α", "A")
             return f"{brand} {model}"
 
-    # Compatte / bridge ricorrenti
+    # Compatte / bridge
     compact_patterns = [
         (r"\bnikon\s+coolpix\s+([a-z0-9\-]+)", "Nikon Coolpix"),
-        (r"\bcanon\s+(?:powershot|ixus)\s+([a-z0-9\-]+)", "Canon"),
-        (r"\bsony\s+(?:cyber[\-\s]?shot|rx)\s*([a-z0-9\-]+)", "Sony"),
+        (r"\bcanon\s+ixus\s+([a-z0-9\-]+)", "Canon IXUS"),
+        (r"\bcanon\s+powershot\s+([a-z0-9\-]+(?:\s*[a-z0-9]+)?)", "Canon PowerShot"),
+        (r"\bsony\s+cyber[\-\s]?shot\s+([a-z0-9\-]+)", "Sony Cyber-shot"),
     ]
     for pattern, brand in compact_patterns:
         match = re.search(pattern, text)
         if match:
-            model = match.group(1).upper()
-            if brand == "Canon":
-                prefix = "IXUS" if "ixus" in text else "PowerShot"
-                return f"Canon {prefix} {model}"
-            if brand == "Sony":
-                return f"Sony {model}" if model.startswith("RX") else f"Sony RX{model}"
-            return f"{brand} {model}"
+            return f"{brand} {match.group(1).upper()}"
 
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
@@ -330,6 +341,11 @@ def detect_family(title):
     ]
     for token, label in brands:
         if re.search(rf"\b{re.escape(token)}\b", text):
+            if (
+                "fotografia" in category_text
+                and label in {"Canon", "Nikon", "Sony", "Fujifilm"}
+            ):
+                continue
             return label
 
     return "Altro / non riconosciuto"
@@ -662,7 +678,10 @@ df = df[
     & (df["sale_time_hours"] <= 24 * 10)
 ].copy()
 
-df["Famiglia"] = df["title"].apply(detect_family)
+df["Famiglia"] = df.apply(
+    lambda row: detect_family(row["title"], row["category"]),
+    axis=1,
+)
 df = apply_recurring_families(df)
 df = apply_manual_family_overrides(df)
 
