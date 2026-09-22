@@ -315,7 +315,10 @@ def recurring_similarity(tokens_a, tokens_b):
     jaccard = len(common) / len(union)
 
     if len(common) >= 3:
-        return jaccard
+        # Tre parole significative uguali identificano già bene
+        # prodotti ricorrenti anche quando il resto del titolo varia
+        # (es. "ETB 30 anniversario ...").
+        return 1.0
 
     # Con sole due parole condivise usiamo una soglia più severa
     # per evitare famiglie troppo generiche.
