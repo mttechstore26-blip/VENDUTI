@@ -256,6 +256,181 @@ def detect_family(title):
     return "Altro / non riconosciuto"
 
 
+
+GENERIC_FAMILIES = {
+    "Altro / non riconosciuto",
+    "Apple",
+    "Samsung",
+    "Sony",
+    "Canon",
+    "Nikon",
+    "Fujifilm",
+    "Lenovo",
+    "ASUS",
+    "Acer",
+    "Dell",
+    "HP",
+    "Nintendo",
+    "Xbox",
+    "PlayStation",
+    "Logitech",
+    "Dyson",
+}
+
+STOPWORDS = {
+    "vendo", "vendesi", "nuovo", "nuova", "nuovi", "nuove",
+    "usato", "usata", "usati", "usate", "come", "con", "senza",
+    "per", "del", "della", "dello", "dei", "degli", "delle",
+    "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
+    "originale", "originali", "ottimo", "ottima", "perfetto",
+    "perfetta", "condizioni", "condizione", "lotto", "stock",
+    "spedizione", "regalo", "offerta", "prezzo", "solo",
+}
+
+
+def significant_tokens(title):
+    tokens = normalize_text(title).split()
+    return [
+        token for token in tokens
+        if len(token) >= 2
+        and token not in STOPWORDS
+    ]
+
+
+def recurring_similarity(tokens_a, tokens_b):
+    a = set(tokens_a)
+    b = set(tokens_b)
+
+    if not a or not b:
+        return 0.0
+
+    common = a & b
+
+    # Servono almeno due elementi significativi in comune.
+    # Con tre o più parole condivise accettiamo anche titoli più descrittivi.
+    if len(common) < 2:
+        return 0.0
+
+    union = a | b
+    jaccard = len(common) / len(union)
+
+    if len(common) >= 3:
+        return jaccard
+
+    # Con sole due parole condivise usiamo una soglia più severa
+    # per evitare famiglie troppo generiche.
+    return jaccard if jaccard >= 0.67 else 0.0
+
+
+def pretty_family_label(token_list):
+    special = {
+        "etb": "ETB",
+        "ps5": "PS5",
+        "ps4": "PS4",
+        "xbox": "Xbox",
+        "pokemon": "Pokemon",
+        "oled": "OLED",
+        "gb": "GB",
+        "tb": "TB",
+    }
+
+    parts = []
+    for token in token_list:
+        if token in special:
+            parts.append(special[token])
+        elif token.isdigit():
+            parts.append(token)
+        else:
+            parts.append(token.capitalize())
+
+    return " ".join(parts)
+
+
+def apply_recurring_families(dataframe):
+    result = dataframe.copy()
+
+    # Partiamo dalle famiglie note e usiamo il clustering solo dove
+    # il riconoscimento attuale è generico.
+    for category, group in result.groupby("category"):
+        candidate_idx = [
+            idx for idx in group.index
+            if result.at[idx, "Famiglia"] in GENERIC_FAMILIES
+        ]
+
+        if len(candidate_idx) < 2:
+            continue
+
+        token_map = {
+            idx: significant_tokens(result.at[idx, "title"])
+            for idx in candidate_idx
+        }
+
+        parent = {idx: idx for idx in candidate_idx}
+
+        def find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        def union(a, b):
+            root_a = find(a)
+            root_b = find(b)
+            if root_a != root_b:
+                parent[root_b] = root_a
+
+        for pos, idx_a in enumerate(candidate_idx):
+            for idx_b in candidate_idx[pos + 1:]:
+                similarity = recurring_similarity(
+                    token_map[idx_a],
+                    token_map[idx_b],
+                )
+
+                if similarity >= 0.50:
+                    union(idx_a, idx_b)
+
+        clusters = {}
+        for idx in candidate_idx:
+            clusters.setdefault(find(idx), []).append(idx)
+
+        for members in clusters.values():
+            if len(members) < 2:
+                continue
+
+            common_tokens = set(token_map[members[0]])
+            for idx in members[1:]:
+                common_tokens &= set(token_map[idx])
+
+            if len(common_tokens) < 2:
+                continue
+
+            # Ordine delle parole preso dal titolo più corto:
+            # rende etichette naturali come "ETB 30 Anniversario".
+            representative = min(
+                members,
+                key=lambda idx: len(token_map[idx]),
+            )
+
+            ordered_common = [
+                token
+                for token in token_map[representative]
+                if token in common_tokens
+            ]
+
+            # Limitiamo l'etichetta a 5 elementi per mantenerla leggibile.
+            ordered_common = ordered_common[:5]
+
+            if len(ordered_common) < 2:
+                continue
+
+            label = pretty_family_label(ordered_common)
+
+            for idx in members:
+                result.at[idx, "Famiglia"] = label
+
+    return result
+
+
 def aggregate(group):
     return pd.Series(
         {
@@ -314,6 +489,7 @@ df = df[
 ].copy()
 
 df["Famiglia"] = df["title"].apply(detect_family)
+df = apply_recurring_families(df)
 
 df = df[df["detected_sold_at"].notna()].copy()
 
