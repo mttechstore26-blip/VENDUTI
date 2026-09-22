@@ -153,6 +153,7 @@ def normalize_text(value):
         .replace("p55", "ps5")
         .replace("ps 5", "ps5")
         .replace("play station 5", "playstation 5")
+        .replace("play 5", "ps5")
         .replace("playstaion", "playstation")
         .replace("playstion", "playstation")
         .replace("playstaton", "playstation")
