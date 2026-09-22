@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from database import get_connection
+from data_cache import load_market_data
 
 
 st.markdown(
@@ -20,92 +20,17 @@ st.markdown(
 )
 
 
-@st.cache_data(ttl=60)
-def load_data():
-    conn = get_connection()
-
-    query = """
-        SELECT
-            l.id,
-            l.title,
-            l.price,
-            l.posted_at,
-            l.detected_sold_at,
-            m.name AS category
-        FROM listings l
-        LEFT JOIN monitorings m
-            ON l.monitoring_id = m.id
-        WHERE l.detected_sold_at IS NOT NULL
-    """
-
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-
-    return df
-
-
-def format_price(value):
-    if pd.isna(value):
-        return "-"
-
-    return (
-        f"€ {value:,.2f}"
-        .replace(",", "X")
-        .replace(".", ",")
-        .replace("X", ".")
-    )
-
-
-df = load_data()
+df = load_market_data().copy()
 
 if df.empty:
     st.warning("Nessun dato disponibile.")
     st.stop()
 
+df = df[df["detected_sold_at"].notna()].copy()
 
-# ---------------------------------------------------------
-# NORMALIZZAZIONE
-# ---------------------------------------------------------
-
-df["price"] = pd.to_numeric(
-    df["price"],
-    errors="coerce",
-)
-
-df["posted_at"] = pd.to_datetime(
-    df["posted_at"],
-    errors="coerce",
-)
-
-df["posted_at"] = (
-    df["posted_at"]
-    .dt.tz_localize(
-        "Europe/Rome",
-        ambiguous="NaT",
-        nonexistent="NaT",
-    )
-    .dt.tz_convert("UTC")
-)
-
-df["detected_sold_at"] = pd.to_datetime(
-    df["detected_sold_at"],
-    errors="coerce",
-    utc=True,
-)
-
-df["category"] = (
-    df["category"]
-    .fillna("Senza categoria")
-)
-
-df["title"] = (
-    df["title"]
-    .fillna("Senza titolo")
-)
-
-df = df[
-    df["detected_sold_at"].notna()
-].copy()
+if df.empty:
+    st.warning("Nessun venduto disponibile.")
+    st.stop()
 
 
 # ---------------------------------------------------------
