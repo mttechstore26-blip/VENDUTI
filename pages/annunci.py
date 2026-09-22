@@ -266,6 +266,27 @@ df.loc[
 ] = pd.NA
 
 
+# -----------------------------------
+# FILTRO QUALITÀ: SOLO VENDITE ENTRO 10 GIORNI
+# -----------------------------------
+#
+# Gli annunci con tempo di vendita non calcolabile o superiore a 10 giorni
+# non sono utili per l'analisi di rotazione e vengono esclusi dall'intera
+# pagina: elenco, prezzi, tempi medi/mediani e analisi per modello.
+MAX_SALE_TIME_HOURS = 10 * 24
+
+df = df[
+    df["sale_time_hours"].notna()
+    & (df["sale_time_hours"] <= MAX_SALE_TIME_HOURS)
+].copy()
+
+if df.empty:
+    st.warning(
+        "Nessun annuncio venduto entro 10 giorni presente."
+    )
+    st.stop()
+
+
 df["speed_category"] = (
     df["sale_time_hours"]
     .apply(speed_category)
