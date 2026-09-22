@@ -996,9 +996,11 @@ if selected_rows:
             "detected_sold_at",
             ascending=False,
         )
-        .head(50)
         .copy()
     )
+
+    if selected_family != "Altro / non riconosciuto":
+        family_listings = family_listings.head(50).copy()
 
     family_listings["Prezzo"] = family_listings["price"].apply(format_price)
     family_listings["Venduto in"] = family_listings["sale_time_hours"].apply(format_speed)
