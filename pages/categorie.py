@@ -296,6 +296,7 @@ def detect_family(title, category=None):
         (r"\bdji\s+(?:drone\s+)?mini\s*(\d+\s*pro|\d+|se)?\b", "DJI Mini"),
         (r"\bdji\s+(?:drone\s+)?mavic\s+([a-z0-9\s]+?)(?=\s+(?:combo|fly|con|piu|\+)|$)", "DJI Mavic"),
         (r"\bdji\s+(?:drone\s+)?avata\s*(\d+)?\b", "DJI Avata"),
+        (r"\bdji\s+neo\s*2\b", "DJI Neo 2"),
         (r"\bdji\s+neo\b", "DJI Neo"),
         (r"\bdji\s+rs\s*(\d+)\s*(mini|pro)?\b", "DJI RS"),
 
@@ -481,7 +482,6 @@ def detect_family(title, category=None):
         (r"\bsoligor.*\bspotmeter\b", "Soligor Spotmeter"),
         (r"\bsony\s+ecm[\-\s]?m1\b", "Sony ECM-M1"),
         (r"\bzwo\s+pe200\b|\bpe200\s+zwo\b", "ZWO PE200"),
-        (r"\bdji.*\bneo\s*2\b", "DJI Neo 2"),
         (r"\bprofoto\s+connect\s+pro\b", "Profoto Connect Pro"),
         (r"\bcanon\s+pixma\s+g550\b", "Canon PIXMA G550"),
         (r"\bmeade\b.*\boculari\b|\boculari\s+meade\b", "Meade Oculari"),
