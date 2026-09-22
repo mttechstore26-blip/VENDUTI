@@ -279,78 +279,10 @@ if current.empty:
     st.stop()
 
 
-st.subheader("📡 Mercato negli ultimi 30 giorni")
 
-prev_count = len(previous)
-current_count = len(current)
-
-volume_delta = (
-    ((current_count - prev_count) / prev_count) * 100
-    if prev_count > 0
-    else pd.NA
-)
-
-current_median_price = current["price"].median()
-previous_median_price = previous["price"].median()
-
-price_delta = (
-    ((current_median_price - previous_median_price) / previous_median_price) * 100
-    if pd.notna(previous_median_price) and previous_median_price != 0
-    else pd.NA
-)
-
-current_speed = current["sale_time_hours"].median()
-previous_speed = previous["sale_time_hours"].median()
-
-speed_delta = (
-    ((current_speed - previous_speed) / previous_speed) * 100
-    if pd.notna(previous_speed) and previous_speed != 0
-    else pd.NA
-)
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric(
-        "📦 Venduti 30 gg",
-        f"{current_count:,}".replace(",", "."),
-        format_delta(volume_delta),
-    )
-
-with col2:
-    st.metric(
-        "💰 Prezzo mediano",
-        format_price(current_median_price),
-        format_delta(price_delta),
-    )
-
-with col3:
-    delta_speed_label = (
-        f"{speed_delta:+.1f}% tempo"
-        if pd.notna(speed_delta)
-        else "-"
-    )
-    st.metric(
-        "⚡ Tempo mediano",
-        format_duration(current_speed),
-        delta_speed_label,
-        delta_color="inverse",
-    )
-
-with col4:
-    st.metric(
-        "🏷️ Categorie attive",
-        current["category"].nunique(),
-    )
-
-st.caption(
-    "Le variazioni confrontano gli ultimi 30 giorni con i 30 giorni precedenti. "
-    "Per il tempo di vendita, una variazione negativa indica una rotazione più veloce."
-)
-
-
-st.divider()
-st.subheader("🏷️ Radar categorie")
+# ---------------------------------------------------------
+# PREPARAZIONE RADAR (serve anche all'esplorazione in primo piano)
+# ---------------------------------------------------------
 
 current_cat = (
     current
@@ -422,133 +354,6 @@ radar["Trend_velocita_%"] = radar.apply(
     ),
     axis=1,
 )
-
-
-def market_signal(row):
-    signals = 0
-
-    if pd.notna(row["Trend_volume_%"]) and row["Trend_volume_%"] >= 10:
-        signals += 1
-
-    if pd.notna(row["Trend_velocita_%"]) and row["Trend_velocita_%"] >= 10:
-        signals += 1
-
-    if row["Venduti"] >= max(5, current_cat["Venduti"].median()):
-        signals += 1
-
-    if signals >= 3:
-        return "🟢 Forte"
-
-    if signals == 2:
-        return "🟡 Interessante"
-
-    return "⚪ Da osservare"
-
-
-radar["Segnale"] = radar.apply(market_signal, axis=1)
-
-radar_display = radar.copy()
-radar_display["Prezzo mediano"] = radar_display["Prezzo_mediano"].apply(format_price)
-radar_display["Tempo mediano"] = radar_display["Tempo_mediano_ore"].apply(format_duration)
-radar_display["Trend venduti"] = radar_display["Trend_volume_%"].apply(format_delta)
-radar_display["Trend prezzo"] = radar_display["Trend_prezzo_%"].apply(format_delta)
-radar_display["Velocità vs prec."] = radar_display["Trend_velocita_%"].apply(format_delta)
-
-radar_display = radar_display.rename(
-    columns={
-        "category": "Categoria",
-    }
-)
-
-st.dataframe(
-    radar_display[
-        [
-            "Categoria",
-            "Venduti",
-            "Trend venduti",
-            "Prezzo mediano",
-            "Trend prezzo",
-            "Tempo mediano",
-            "Velocità vs prec.",
-            "Segnale",
-        ]
-    ].sort_values("Venduti", ascending=False),
-    width="stretch",
-    hide_index=True,
-    height=500,
-)
-
-st.caption(
-    "Il segnale sintetico non stima il profitto: evidenzia categorie con combinazione di volume, crescita e velocità di vendita."
-)
-
-
-st.divider()
-st.subheader("🔥 Cosa sta girando di più")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("**Più venduti negli ultimi 30 giorni**")
-
-    top_volume = (
-        radar_display[
-            [
-                "Categoria",
-                "Venduti",
-                "Trend venduti",
-                "Prezzo mediano",
-            ]
-        ]
-        .sort_values("Venduti", ascending=False)
-        .head(10)
-    )
-
-    st.dataframe(
-        top_volume,
-        width="stretch",
-        hide_index=True,
-    )
-
-with col2:
-    st.markdown("**Rotazione più veloce**")
-
-    top_speed = (
-        radar[
-            radar["Tempo_mediano_ore"].notna()
-        ][
-            [
-                "category",
-                "Venduti",
-                "Tempo_mediano_ore",
-                "Trend_velocita_%",
-            ]
-        ]
-        .sort_values(
-            ["Tempo_mediano_ore", "Venduti"],
-            ascending=[True, False],
-        )
-        .head(10)
-        .copy()
-    )
-
-    top_speed["Tempo mediano"] = top_speed["Tempo_mediano_ore"].apply(format_duration)
-    top_speed["Velocità vs prec."] = top_speed["Trend_velocita_%"].apply(format_delta)
-    top_speed = top_speed.rename(columns={"category": "Categoria"})
-
-    st.dataframe(
-        top_speed[
-            [
-                "Categoria",
-                "Venduti",
-                "Tempo mediano",
-                "Velocità vs prec.",
-            ]
-        ],
-        width="stretch",
-        hide_index=True,
-    )
-
 
 st.divider()
 st.subheader("🔎 Esplora una categoria")
@@ -755,3 +560,204 @@ if not daily_sales.empty:
     )
 else:
     st.info("Dati insufficienti per il grafico.")
+
+
+st.subheader("📡 Mercato negli ultimi 30 giorni")
+
+prev_count = len(previous)
+current_count = len(current)
+
+volume_delta = (
+    ((current_count - prev_count) / prev_count) * 100
+    if prev_count > 0
+    else pd.NA
+)
+
+current_median_price = current["price"].median()
+previous_median_price = previous["price"].median()
+
+price_delta = (
+    ((current_median_price - previous_median_price) / previous_median_price) * 100
+    if pd.notna(previous_median_price) and previous_median_price != 0
+    else pd.NA
+)
+
+current_speed = current["sale_time_hours"].median()
+previous_speed = previous["sale_time_hours"].median()
+
+speed_delta = (
+    ((current_speed - previous_speed) / previous_speed) * 100
+    if pd.notna(previous_speed) and previous_speed != 0
+    else pd.NA
+)
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(
+        "📦 Venduti 30 gg",
+        f"{current_count:,}".replace(",", "."),
+        format_delta(volume_delta),
+    )
+
+with col2:
+    st.metric(
+        "💰 Prezzo mediano",
+        format_price(current_median_price),
+        format_delta(price_delta),
+    )
+
+with col3:
+    delta_speed_label = (
+        f"{speed_delta:+.1f}% tempo"
+        if pd.notna(speed_delta)
+        else "-"
+    )
+    st.metric(
+        "⚡ Tempo mediano",
+        format_duration(current_speed),
+        delta_speed_label,
+        delta_color="inverse",
+    )
+
+with col4:
+    st.metric(
+        "🏷️ Categorie attive",
+        current["category"].nunique(),
+    )
+
+st.caption(
+    "Le variazioni confrontano gli ultimi 30 giorni con i 30 giorni precedenti. "
+    "Per il tempo di vendita, una variazione negativa indica una rotazione più veloce."
+)
+
+
+st.divider()
+st.subheader("🏷️ Radar categorie")
+
+def market_signal(row):
+    signals = 0
+
+    if pd.notna(row["Trend_volume_%"]) and row["Trend_volume_%"] >= 10:
+        signals += 1
+
+    if pd.notna(row["Trend_velocita_%"]) and row["Trend_velocita_%"] >= 10:
+        signals += 1
+
+    if row["Venduti"] >= max(5, current_cat["Venduti"].median()):
+        signals += 1
+
+    if signals >= 3:
+        return "🟢 Forte"
+
+    if signals == 2:
+        return "🟡 Interessante"
+
+    return "⚪ Da osservare"
+
+
+radar["Segnale"] = radar.apply(market_signal, axis=1)
+
+radar_display = radar.copy()
+radar_display["Prezzo mediano"] = radar_display["Prezzo_mediano"].apply(format_price)
+radar_display["Tempo mediano"] = radar_display["Tempo_mediano_ore"].apply(format_duration)
+radar_display["Trend venduti"] = radar_display["Trend_volume_%"].apply(format_delta)
+radar_display["Trend prezzo"] = radar_display["Trend_prezzo_%"].apply(format_delta)
+radar_display["Velocità vs prec."] = radar_display["Trend_velocita_%"].apply(format_delta)
+
+radar_display = radar_display.rename(
+    columns={
+        "category": "Categoria",
+    }
+)
+
+st.dataframe(
+    radar_display[
+        [
+            "Categoria",
+            "Venduti",
+            "Trend venduti",
+            "Prezzo mediano",
+            "Trend prezzo",
+            "Tempo mediano",
+            "Velocità vs prec.",
+            "Segnale",
+        ]
+    ].sort_values("Venduti", ascending=False),
+    width="stretch",
+    hide_index=True,
+    height=500,
+)
+
+st.caption(
+    "Il segnale sintetico non stima il profitto: evidenzia categorie con combinazione di volume, crescita e velocità di vendita."
+)
+
+
+st.divider()
+st.subheader("🔥 Cosa sta girando di più")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("**Più venduti negli ultimi 30 giorni**")
+
+    top_volume = (
+        radar_display[
+            [
+                "Categoria",
+                "Venduti",
+                "Trend venduti",
+                "Prezzo mediano",
+            ]
+        ]
+        .sort_values("Venduti", ascending=False)
+        .head(10)
+    )
+
+    st.dataframe(
+        top_volume,
+        width="stretch",
+        hide_index=True,
+    )
+
+with col2:
+    st.markdown("**Rotazione più veloce**")
+
+    top_speed = (
+        radar[
+            radar["Tempo_mediano_ore"].notna()
+        ][
+            [
+                "category",
+                "Venduti",
+                "Tempo_mediano_ore",
+                "Trend_velocita_%",
+            ]
+        ]
+        .sort_values(
+            ["Tempo_mediano_ore", "Venduti"],
+            ascending=[True, False],
+        )
+        .head(10)
+        .copy()
+    )
+
+    top_speed["Tempo mediano"] = top_speed["Tempo_mediano_ore"].apply(format_duration)
+    top_speed["Velocità vs prec."] = top_speed["Trend_velocita_%"].apply(format_delta)
+    top_speed = top_speed.rename(columns={"category": "Categoria"})
+
+    st.dataframe(
+        top_speed[
+            [
+                "Categoria",
+                "Venduti",
+                "Tempo mediano",
+                "Velocità vs prec.",
+            ]
+        ],
+        width="stretch",
+        hide_index=True,
+    )
+
+
