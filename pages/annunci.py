@@ -454,11 +454,16 @@ if page_size is None:
 total_rows = len(filtered)
 total_pages = max(1, (total_rows + page_size - 1) // page_size)
 
+if "annunci_page" not in st.session_state:
+    st.session_state.annunci_page = 1
+
+if st.session_state.annunci_page > total_pages:
+    st.session_state.annunci_page = total_pages
+
 page = st.number_input(
     "Pagina",
     min_value=1,
     max_value=total_pages,
-    value=min(st.session_state.get("annunci_page", 1), total_pages),
     step=1,
     key="annunci_page",
 )
