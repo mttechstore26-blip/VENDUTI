@@ -228,11 +228,17 @@ def detect_family(title):
         return label
 
     meta_quest = re.search(
-        r"\b(?:meta\s+)?quest\s*(2|3s|3|pro)\b",
+        r"\b(?:meta\s+)?quest\s*(2|3\s*s|3|pro)\b",
         text,
     )
+    if not meta_quest:
+        meta_quest = re.search(
+            r"\bmeta\s+(2|3\s*s|3|pro)\b",
+            text,
+        )
+
     if meta_quest:
-        model = meta_quest.group(1).upper()
+        model = re.sub(r"\s+", "", meta_quest.group(1)).upper()
         if model == "PRO":
             return "Meta Quest Pro"
         return f"Meta Quest {model}"
