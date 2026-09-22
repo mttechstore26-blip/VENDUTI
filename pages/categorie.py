@@ -509,6 +509,101 @@ def detect_family(title, category=None):
     if re.search(r"\bstabilizzatore\s+gimbal\b|\bstabilizatore\s+gimbal\b", text):
         return "Gimbal / Stabilizzatore"
 
+    # Collezionismo: famiglie utili per il sourcing.
+    # Vini/champagne restano volutamente in "Altro / non riconosciuto".
+    if "collezionismo" in category_text:
+        # LEGO: se c'è il numero set, usa quello; altrimenti famiglia LEGO.
+        lego_set = re.search(r"\blego\b.*?\b(\d{4,6})\b", text)
+        if lego_set:
+            return f"LEGO {lego_set.group(1)}"
+        if re.search(r"\blego\b", text):
+            return "LEGO"
+
+        # Pokémon / TCG.
+        if re.search(
+            r"\bpokemon\b|\bpoke\b|\bcharizard\b|\bblastoise\b|"
+            r"\bmew\b|\bmewtwo\b|\blugia\b|\braichu\b|\bcelebi\b|"
+            r"\bvictini\b|\bmoltres\b|\bespeon\b|\bbulbasaur\b|\bsquirt",
+            text,
+        ):
+            return "Pokémon TCG"
+
+        # Magic: The Gathering.
+        if re.search(
+            r"\bmtg\b|\bmagic\s+the\s+gathering\b|\bmystery\s+booster\b",
+            text,
+        ):
+            return "Magic: The Gathering"
+
+        if re.search(r"\bsubbuteo\b", text):
+            return "Subbuteo"
+        if re.search(r"\bskylanders\b", text):
+            return "Skylanders"
+        if re.search(r"\bbeyblade\b", text):
+            return "Beyblade"
+        if re.search(r"\bdungeon\s+(?:and|&)\s+dragons\b|\bd&d\b|\bdnd\b", text):
+            return "Dungeons & Dragons"
+        if re.search(r"\bwarhammer\b", text):
+            return "Warhammer"
+        if re.search(r"\bfunko\b", text):
+            return "Funko"
+        if re.search(r"\bhot\s+toys\b", text):
+            return "Hot Toys"
+
+        # Manga / fumetti / figurine.
+        if re.search(r"\bmanga\b|\bhunter\s+x\s+hunter\b|\bdarwins?\s+game\b", text):
+            return "Manga"
+        if re.search(r"\bfumett", text):
+            return "Fumetti"
+        if re.search(r"\bpanini\b|\bfigurine\b|\balbum\s+calciatori\b", text):
+            return "Panini / Figurine"
+
+        # Modellini auto / die-cast.
+        if re.search(
+            r"\bmodellini?\b|\bhotwheels?\b|\bbburago\b|\bmebetoys\b|"
+            r"\btecnomodel\b|\blaudoracing\b|\bpocher\b",
+            text,
+        ):
+            return "Modellini auto"
+
+        # Auto/mezzi RC e radiocomandati.
+        if re.search(
+            r"\bradiocomand|\bauto\s+rc\b|\bbuggy\b|\bcrawler\b|"
+            r"\bkyosho\b|\bhpi\b|\bxray\b|\baxial\b|\btamiya\b|"
+            r"\btamya\b|\bteam\s+associated\b|\bnovarossi\b|\bpicco\b|"
+            r"\bradiomaster\b",
+            text,
+        ):
+            return "RC / Radiocomandati"
+
+        # Modellismo ferroviario.
+        if re.search(
+            r"\bfleischmann\b|\bacme\b.*\bcarrozza\b|\bh0\b|"
+            r"\bmodellismo\s+ferroviario\b|\btrenino\b|\btreni\b",
+            text,
+        ):
+            return "Modellismo ferroviario"
+
+        # Modellismo navale.
+        if re.search(
+            r"\bmodellismo\s+navale\b|\bveliero\b|\bhms\b|\bsantisima\s+trinidad\b|"
+            r"\bmamoli\b|\boccre\b",
+            text,
+        ):
+            return "Modellismo navale"
+
+        # Metal detector.
+        if re.search(r"\bmetal\s*detector\b|\bmetaldetector\b", text):
+            return "Metal detector"
+
+        # Action figure / statue / robot da collezione.
+        if re.search(
+            r"\bbandai\b|\bmetalbuild\b|\bmazinger\b|\bstatuett|"
+            r"\baction\s+figure\b|\bpersonaggi\b",
+            text,
+        ):
+            return "Action figure / Statue"
+
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
         (r"\blenovo\s+ideapad\b", "Lenovo IdeaPad"),
