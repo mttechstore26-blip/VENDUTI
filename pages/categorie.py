@@ -203,6 +203,18 @@ def detect_family(title):
             label += f" {variant.upper() if variant == 'fe' else variant.title()}"
         return label
 
+    insta360 = re.search(
+        r"\binsta\s*360\s+(go\s*\d+[a-z]?|x\s*\d+|ace\s*pro\s*\d*|one\s*[a-z0-9]+)(?:\s+(\d{2,4}gb))?\b",
+        text,
+    )
+    if insta360:
+        model, storage = insta360.groups()
+        model = re.sub(r"\s+", " ", model).strip()
+        label = f"Insta360 {model.upper() if model.startswith('x') else model.title()}"
+        if storage:
+            label += f" {storage.upper()}"
+        return label
+
     gopro = re.search(
         r"\bgopro(?:\s+hero)?\s*(\d{1,2})(?:\s+(black|silver|white))?\b",
         text,
