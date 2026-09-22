@@ -157,6 +157,7 @@ def normalize_text(value):
         .replace("playstaion", "playstation")
         .replace("playstion", "playstation")
         .replace("playstaton", "playstation")
+        .replace("playstartion", "playstation")
         .replace("metà", "meta")
     )
     text = re.sub(r"[^a-z0-9\s]", " ", text)
@@ -177,6 +178,9 @@ def detect_family(title):
             return f"iPhone {generation} mini"
         if re.search(rf"\biphone\s*{generation}\b", text):
             return f"iPhone {generation}"
+
+    if re.search(r"\b(?:ps|playstation)\s*portal\b", text):
+        return "PlayStation Portal"
 
     console_patterns = [
         (r"\bps5\b.*\bpro\b|\bplaystation\s*5\b.*\bpro\b", "PS5 Pro"),
