@@ -2,7 +2,7 @@ import re
 import streamlit as st
 import pandas as pd
 
-from database import get_connection
+from data_cache import load_market_data
 
 
 st.markdown(
@@ -19,32 +19,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
-@st.cache_data(ttl=60)
-def load_data():
-    conn = get_connection()
-
-    query = """
-        SELECT
-            l.external_id,
-            l.title,
-            l.url,
-            l.price,
-            l.posted_at,
-            l.detected_sold_at,
-            m.name AS category
-        FROM listings l
-        LEFT JOIN monitorings m
-            ON l.monitoring_id = m.id
-        WHERE l.detected_sold_at IS NOT NULL
-        ORDER BY l.detected_sold_at DESC
-    """
-
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-
-    return df
 
 
 def format_price(value):
@@ -202,95 +176,25 @@ def detect_iphone_model(title):
 
     return None
 
-df = load_data()
+df = load_market_data().copy()
 
 if df.empty:
     st.warning("Nessun annuncio venduto presente.")
     st.stop()
 
-
-# -----------------------------------
-# NORMALIZZAZIONE DATI
-# -----------------------------------
-
-df["price"] = pd.to_numeric(
-    df["price"],
-    errors="coerce",
-)
-
-df["posted_at"] = pd.to_datetime(
-    df["posted_at"],
-    errors="coerce",
-)
-
-df["posted_at"] = (
-    df["posted_at"]
-    .dt.tz_localize(
-        "Europe/Rome",
-        ambiguous="NaT",
-        nonexistent="NaT",
-    )
-    .dt.tz_convert("UTC")
-)
-
-df["detected_sold_at"] = pd.to_datetime(
-    df["detected_sold_at"],
-    errors="coerce",
-    utc=True,
-)
-
-df["category"] = (
-    df["category"]
-    .fillna("Senza categoria")
-)
-
-df["title"] = (
-    df["title"]
-    .fillna("Senza titolo")
-)
-
-
-# -----------------------------------
-# TEMPO DI VENDITA
-# -----------------------------------
-
-df["sale_time_hours"] = (
-    df["detected_sold_at"]
-    - df["posted_at"]
-).dt.total_seconds() / 3600
-
-
-df.loc[
-    df["sale_time_hours"] < 0,
-    "sale_time_hours",
-] = pd.NA
-
-
-# -----------------------------------
-# FILTRO QUALITÀ: SOLO VENDITE ENTRO 10 GIORNI
-# -----------------------------------
-#
-# Gli annunci con tempo di vendita non calcolabile o superiore a 10 giorni
-# non sono utili per l'analisi di rotazione e vengono esclusi dall'intera
-# pagina: elenco, prezzi, tempi medi/mediani e analisi per modello.
 MAX_SALE_TIME_HOURS = 10 * 24
 
 df = df[
-    df["sale_time_hours"].notna()
+    df["detected_sold_at"].notna()
+    & df["sale_time_hours"].notna()
     & (df["sale_time_hours"] <= MAX_SALE_TIME_HOURS)
 ].copy()
 
 if df.empty:
-    st.warning(
-        "Nessun annuncio venduto entro 10 giorni presente."
-    )
+    st.warning("Nessun annuncio venduto entro 10 giorni presente.")
     st.stop()
 
-
-df["speed_category"] = (
-    df["sale_time_hours"]
-    .apply(speed_category)
-)
+df["speed_category"] = df["sale_time_hours"].apply(speed_category)
 
 
 # -----------------------------------
@@ -530,136 +434,110 @@ with col3:
 
 
 # -----------------------------------
-# TABELLA
+# TABELLA VELOCE E PAGINATA
 # -----------------------------------
 
 st.divider()
+st.subheader("📋 Elenco annunci venduti")
 
-with st.expander("📋 Elenco annunci venduti", expanded=True):
+page_size = st.segmented_control(
+    "Righe per pagina",
+    options=[50, 100, 200],
+    default=50,
+    format_func=lambda value: f"{value} righe",
+    key="annunci_page_size",
+)
 
+if page_size is None:
+    page_size = 50
 
-    table = filtered[
-        [
-            "title",
-            "url",
-            "category",
-            "price",
-            "posted_at",
-            "detected_sold_at",
-            "sale_time_hours",
-        ]
-    ].copy()
+total_rows = len(filtered)
+total_pages = max(1, (total_rows + page_size - 1) // page_size)
 
+page = st.number_input(
+    "Pagina",
+    min_value=1,
+    max_value=total_pages,
+    value=min(st.session_state.get("annunci_page", 1), total_pages),
+    step=1,
+    key="annunci_page",
+)
 
-    table["Velocità"] = (
-        table["sale_time_hours"]
-        .apply(
-            lambda hours: (
-                f"{speed_emoji(hours)} "
-                f"{format_duration(hours)}"
-            ).strip()
-        )
-    )
+start_row = (int(page) - 1) * page_size
+end_row = min(start_row + page_size, total_rows)
 
+st.caption(
+    f"Mostro {start_row + 1}-{end_row} di {total_rows:,} annunci · "
+    f"pagina {int(page)} di {total_pages}"
+    .replace(",", ".")
+)
 
-    table["price"] = (
-        table["price"]
-        .apply(format_price)
-    )
+table = filtered.iloc[start_row:end_row][
+    [
+        "title",
+        "url",
+        "category",
+        "price",
+        "posted_at",
+        "detected_sold_at",
+        "sale_time_hours",
+    ]
+].copy()
 
+table["Venduto in"] = [
+    f"{speed_emoji(hours)} {format_duration(hours)}".strip()
+    for hours in table["sale_time_hours"]
+]
 
-    table["posted_at"] = (
-        table["posted_at"]
-        .dt.tz_convert("Europe/Rome")
-        .dt.strftime("%d/%m/%Y %H:%M")
-        .fillna("-")
-    )
+table["Pubblicato"] = (
+    table["posted_at"]
+    .dt.tz_convert("Europe/Rome")
+    .dt.strftime("%d/%m/%Y %H:%M")
+    .fillna("-")
+)
 
+table["Venduto rilevato"] = (
+    table["detected_sold_at"]
+    .dt.tz_convert("Europe/Rome")
+    .dt.strftime("%d/%m/%Y %H:%M")
+    .fillna("-")
+)
 
-    table["detected_sold_at"] = (
-        table["detected_sold_at"]
-        .dt.tz_convert("Europe/Rome")
-        .dt.strftime("%d/%m/%Y %H:%M")
-        .fillna("-")
-    )
+table = table.rename(
+    columns={
+        "title": "Prodotto",
+        "url": "Link",
+        "category": "Categoria",
+        "price": "Prezzo",
+    }
+)
 
-
-    table["Prodotto"] = table.apply(
-        lambda row: (
-            f'<a href="{row["url"]}" target="_blank">{row["title"]}</a>'
-            if pd.notna(row["url"]) and row["url"]
-            else row["title"]
-        ),
-        axis=1,
-    )
-
-
-    table = table[
+st.dataframe(
+    table[
         [
             "Prodotto",
-            "category",
-            "price",
-            "Velocità",
-            "posted_at",
-            "detected_sold_at",
+            "Link",
+            "Categoria",
+            "Prezzo",
+            "Venduto in",
+            "Pubblicato",
+            "Venduto rilevato",
         ]
-    ]
-
-
-    table.columns = [
-        "Prodotto",
-        "Categoria",
-        "Prezzo",
-        "Venduto in",
-        "Pubblicato",
-        "Venduto rilevato",
-    ]
-
-
-    html_table = table.to_html(
-        escape=False,
-        index=False,
-    )
-
-    st.markdown(
-        """
-        <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            border-bottom: 1px solid rgba(128,128,128,0.25);
-            text-align: left;
-            vertical-align: middle;
-        }
-
-        th {
-            font-weight: 700;
-            position: sticky;
-            top: 0;
-        }
-
-        td a {
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        td a:hover {
-            text-decoration: underline;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        html_table,
-        unsafe_allow_html=True,
-    )
+    ],
+    width="stretch",
+    hide_index=True,
+    height=560,
+    column_config={
+        "Link": st.column_config.LinkColumn(
+            "Apri",
+            display_text="🔗 Annuncio",
+        ),
+        "Prezzo": st.column_config.NumberColumn(
+            "Prezzo",
+            format="€ %.2f",
+        ),
+    },
+)
 
 
 # -----------------------------------
