@@ -262,17 +262,37 @@ def detect_family(title):
             label += f" {edition.title()}"
         return label
 
+    # Fotocamere: preferisce sempre marca + modello reale alla sola marca.
+    # Supporta anche titoli abbreviati, es. "Canon 1300D" senza "EOS".
     camera_patterns = [
-        (r"\bcanon\s+eos\s+([a-z0-9]+)", "Canon EOS"),
-        (r"\bsony\s+alpha\s+([a-z0-9]+)", "Sony Alpha"),
-        (r"\bsony\s+a(\d{4})\b", "Sony Alpha"),
-        (r"\bnikon\s+([dz]\d{2,4})\b", "Nikon"),
-        (r"\bfujifilm\s+([a-z0-9\-]+)", "Fujifilm"),
+        (r"\bcanon(?:\s+eos)?\s+((?:\d{2,4}d|r\d{1,2}|rp|r|m\d{1,2}))\b", "Canon"),
+        (r"\bnikon\s+((?:d\d{2,4}|z\s*\d{1,2}|df))\b", "Nikon"),
+        (r"\bsony(?:\s+alpha)?\s+((?:a|α)?\d{1,4}[a-z]{0,2}|a7\s*(?:ii|iii|iv|v|r|s|c)?|a9\s*(?:ii|iii)?|a1)\b", "Sony"),
+        (r"\bfujifilm\s+((?:x|gfx)[\-\s]?[a-z0-9]+(?:\s*[a-z0-9]+)?)\b", "Fujifilm"),
+        (r"\bfuji\s+((?:x|gfx)[\-\s]?[a-z0-9]+(?:\s*[a-z0-9]+)?)\b", "Fujifilm"),
     ]
     for pattern, brand in camera_patterns:
         match = re.search(pattern, text)
         if match:
+            model = re.sub(r"\s+", " ", match.group(1)).strip().upper()
+            model = model.replace("Α", "A")
+            return f"{brand} {model}"
+
+    # Compatte / bridge ricorrenti
+    compact_patterns = [
+        (r"\bnikon\s+coolpix\s+([a-z0-9\-]+)", "Nikon Coolpix"),
+        (r"\bcanon\s+(?:powershot|ixus)\s+([a-z0-9\-]+)", "Canon"),
+        (r"\bsony\s+(?:cyber[\-\s]?shot|rx)\s*([a-z0-9\-]+)", "Sony"),
+    ]
+    for pattern, brand in compact_patterns:
+        match = re.search(pattern, text)
+        if match:
             model = match.group(1).upper()
+            if brand == "Canon":
+                prefix = "IXUS" if "ixus" in text else "PowerShot"
+                return f"Canon {prefix} {model}"
+            if brand == "Sony":
+                return f"Sony {model}" if model.startswith("RX") else f"Sony RX{model}"
             return f"{brand} {model}"
 
     pc_patterns = [
