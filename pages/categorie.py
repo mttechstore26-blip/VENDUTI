@@ -592,6 +592,65 @@ def detect_family(title, category=None):
         ):
             return "Modellismo navale"
 
+        # Trading/sports cards non Pokémon/MTG.
+        if re.search(
+            r"\btopps\b|\btrading\s+cards?\b|\bsports?\s+cards?\b|"
+            r"\bcard\s+dazn\b|\bufc\s+topps\b",
+            text,
+        ):
+            return "Trading cards"
+
+        # Militaria e memorabilia storica.
+        if re.search(
+            r"\bww2\b|\bmilitaria\b|\bpnf\b|\bmimetica\b|"
+            r"\bspange\b|\bteschio\b|\bscudetto\s+pnf\b",
+            text,
+        ):
+            return "Militaria"
+
+        # Transformers e robot da collezione.
+        if re.search(r"\btransformers?\b|\bjetfire\b", text):
+            return "Transformers"
+
+        # Bambole / giocattoli vintage.
+        if re.search(
+            r"\bbarbie\b|\bbambol|\bsailor\s+moon\b|"
+            r"\bgiocattolo\s+robot\b|\bbiker\s+mice\b|\bmicro\s+machines\b",
+            text,
+        ):
+            return "Giocattoli vintage"
+
+        # Ceramiche / porcellane / piatti da collezione.
+        if re.search(
+            r"\bceramica\b|\bporcellan|\bpiatti?\b|\bvietri\b|"
+            r"\bcantagalli\b|\bformella\b",
+            text,
+        ):
+            return "Ceramiche / Porcellane"
+
+        # Orologi e accessori da collezione.
+        if re.search(
+            r"\borologi?\b|\bomega\b|\beberhard\b|\bspeed\s*master\b",
+            text,
+        ):
+            return "Orologi / Accessori"
+
+        # Penne e accendini da collezione.
+        if re.search(r"\bpenne?\b|\baccendini?\b|\bcartier\b", text):
+            return "Penne / Accendini"
+
+        # Reliquie e oggetti religiosi.
+        if re.search(r"\breliqui|\bnativit|\bre\s+magio\b|\bpresepe\b", text):
+            return "Religioso / Reliquie"
+
+        # Aeromodellismo / elicotteri RC.
+        if re.search(
+            r"\baeromodell|\baliante\s+rc\b|\baereo\s+rc\b|"
+            r"\belicottero\s+rc\b|\bhobbyking\b|\bseb-art\b|\bsebarts?\b",
+            text,
+        ):
+            return "Aeromodellismo RC"
+
         # Metal detector.
         if re.search(r"\bmetal\s*detector\b|\bmetaldetector\b", text):
             return "Metal detector"
