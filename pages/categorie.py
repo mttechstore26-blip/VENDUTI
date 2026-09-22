@@ -252,6 +252,9 @@ def detect_family(title, category=None):
             return "Meta Quest Pro"
         return f"Meta Quest {model}"
 
+    if re.search(r"\bgopro\s+(?:hero\s+)?max\b", text):
+        return "GoPro MAX"
+
     gopro = re.search(
         r"\bgopro(?:\s+hero)?\s*(\d{1,2})(?:\s+(black|silver|white))?\b",
         text,
@@ -305,6 +308,63 @@ def detect_family(title, category=None):
         match = re.search(pattern, text)
         if match:
             return f"{brand} {match.group(1).upper()}"
+
+    # Altri sistemi fotografici / video comuni
+    photo_product_patterns = [
+        # DJI: action cam, pocket, droni e gimbal
+        (r"\bdji\s+osmo\s+pocket\s*(\d+)?\b", "DJI Osmo Pocket"),
+        (r"\bdji\s+osmo\s+action\s*(\d+)?\b", "DJI Osmo Action"),
+        (r"\bdji\s+(?:drone\s+)?mini\s*(\d+\s*pro|\d+|se)?\b", "DJI Mini"),
+        (r"\bdji\s+(?:drone\s+)?mavic\s+([a-z0-9\s]+?)(?=\s+(?:combo|fly|con|piu|\+)|$)", "DJI Mavic"),
+        (r"\bdji\s+(?:drone\s+)?avata\s*(\d+)?\b", "DJI Avata"),
+        (r"\bdji\s+neo\b", "DJI Neo"),
+        (r"\bdji\s+rs\s*(\d+)\s*(mini|pro)?\b", "DJI RS"),
+
+        # Panasonic / Olympus / Pentax / Leica
+        (r"\b(?:panasonic\s+)?lumix\s+([a-z]{1,3}\d+[a-z0-9\-]*)\b", "Panasonic Lumix"),
+        (r"\bpanasonic\s+([a-z]{1,3}\d+[a-z0-9\-]*)\b", "Panasonic"),
+        (r"\bolympus\s+(?:om[\-\s]?d\s+)?([a-z]{1,3}[\-\s]?\d+[a-z0-9]*)\b", "Olympus"),
+        (r"\bom\s*system\s+([a-z0-9\-]+)\b", "OM System"),
+        (r"\bpentax\s+([a-z]{1,3}[\-\s]?\d+[a-z0-9]*)\b", "Pentax"),
+        (r"\bleica\s+([qmstdcl][a-z0-9\-]*)\b", "Leica"),
+    ]
+
+    for pattern, brand in photo_product_patterns:
+        match = re.search(pattern, text)
+        if match:
+            groups = [g for g in match.groups() if g]
+            suffix = " ".join(groups)
+            suffix = re.sub(r"\s+", " ", suffix).strip().upper()
+            return f"{brand}{(' ' + suffix) if suffix else ''}"
+
+    # Obiettivi: raggruppa per marca + focale/zoom, molto più utile della sola marca.
+    # Esempi: "Canon EF 50mm", "Sigma 18-35mm", "Tamron 70-300mm".
+    lens_brand_match = re.search(
+        r"\b(canon|nikon|nikkor|sony|sigma|tamron|samyang|tokina|viltrox)\b",
+        text,
+    )
+    lens_focal_match = re.search(
+        r"\b(\d{1,3}(?:[\-\s]?\d{1,3})?)\s*mm\b",
+        text,
+    )
+
+    if lens_brand_match and lens_focal_match:
+        raw_brand = lens_brand_match.group(1)
+        brand_map = {
+            "canon": "Canon",
+            "nikon": "Nikon",
+            "nikkor": "Nikon",
+            "sony": "Sony",
+            "sigma": "Sigma",
+            "tamron": "Tamron",
+            "samyang": "Samyang",
+            "tokina": "Tokina",
+            "viltrox": "Viltrox",
+        }
+        brand = brand_map[raw_brand]
+        focal = re.sub(r"\s+", "-", lens_focal_match.group(1))
+        focal = focal.replace("--", "-")
+        return f"{brand} {focal}mm"
 
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
