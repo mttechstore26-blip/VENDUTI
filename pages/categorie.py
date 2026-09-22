@@ -349,11 +349,31 @@ def pretty_family_label(token_list):
     return " ".join(parts)
 
 
+def recurring_ngrams(tokens):
+    phrases = []
+
+    # Consideriamo sequenze da 2 a 4 parole significative.
+    # Sono molto più efficaci del semplice confronto del titolo intero
+    # per categorie eterogenee come giardino, fai da te e collezionismo.
+    for size in (4, 3, 2):
+        if len(tokens) < size:
+            continue
+
+        for start in range(len(tokens) - size + 1):
+            phrase = tuple(tokens[start:start + size])
+
+            # Evita etichette formate quasi solo da numeri.
+            if sum(token.isdigit() for token in phrase) >= size - 1:
+                continue
+
+            phrases.append(phrase)
+
+    return phrases
+
+
 def apply_recurring_families(dataframe):
     result = dataframe.copy()
 
-    # Partiamo dalle famiglie note e usiamo il clustering solo dove
-    # il riconoscimento attuale è generico.
     for category, group in result.groupby("category"):
         candidate_idx = [
             idx for idx in group.index
@@ -368,7 +388,64 @@ def apply_recurring_families(dataframe):
             for idx in candidate_idx
         }
 
-        parent = {idx: idx for idx in candidate_idx}
+        # -----------------------------------------------------
+        # 1) RICONOSCIMENTO PER FRASI RICORRENTI
+        # -----------------------------------------------------
+        phrase_members = {}
+
+        for idx in candidate_idx:
+            seen = set()
+            for phrase in recurring_ngrams(token_map[idx]):
+                if phrase in seen:
+                    continue
+                seen.add(phrase)
+                phrase_members.setdefault(phrase, []).append(idx)
+
+        recurring = {
+            phrase: members
+            for phrase, members in phrase_members.items()
+            if len(set(members)) >= 2
+        }
+
+        # Preferiamo prima le frasi più lunghe, poi quelle più frequenti.
+        ordered_phrases = sorted(
+            recurring.items(),
+            key=lambda item: (
+                len(item[0]),
+                len(set(item[1])),
+            ),
+            reverse=True,
+        )
+
+        assigned = set()
+
+        for phrase, members in ordered_phrases:
+            available = [
+                idx for idx in dict.fromkeys(members)
+                if idx not in assigned
+            ]
+
+            if len(available) < 2:
+                continue
+
+            label = pretty_family_label(list(phrase))
+
+            for idx in available:
+                result.at[idx, "Famiglia"] = label
+                assigned.add(idx)
+
+        # -----------------------------------------------------
+        # 2) FALLBACK: SIMILARITÀ FRA TITOLI
+        # -----------------------------------------------------
+        remaining = [
+            idx for idx in candidate_idx
+            if idx not in assigned
+        ]
+
+        if len(remaining) < 2:
+            continue
+
+        parent = {idx: idx for idx in remaining}
 
         def find(x):
             while parent[x] != x:
@@ -382,8 +459,8 @@ def apply_recurring_families(dataframe):
             if root_a != root_b:
                 parent[root_b] = root_a
 
-        for pos, idx_a in enumerate(candidate_idx):
-            for idx_b in candidate_idx[pos + 1:]:
+        for pos, idx_a in enumerate(remaining):
+            for idx_b in remaining[pos + 1:]:
                 similarity = recurring_similarity(
                     token_map[idx_a],
                     token_map[idx_b],
@@ -393,7 +470,7 @@ def apply_recurring_families(dataframe):
                     union(idx_a, idx_b)
 
         clusters = {}
-        for idx in candidate_idx:
+        for idx in remaining:
             clusters.setdefault(find(idx), []).append(idx)
 
         for members in clusters.values():
@@ -407,8 +484,6 @@ def apply_recurring_families(dataframe):
             if len(common_tokens) < 2:
                 continue
 
-            # Ordine delle parole preso dal titolo più corto:
-            # rende etichette naturali come "ETB 30 Anniversario".
             representative = min(
                 members,
                 key=lambda idx: len(token_map[idx]),
@@ -418,10 +493,7 @@ def apply_recurring_families(dataframe):
                 token
                 for token in token_map[representative]
                 if token in common_tokens
-            ]
-
-            # Limitiamo l'etichetta a 5 elementi per mantenerla leggibile.
-            ordered_common = ordered_common[:5]
+            ][:5]
 
             if len(ordered_common) < 2:
                 continue
