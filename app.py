@@ -123,7 +123,6 @@ st.markdown(
         border: 1px solid rgba(255,255,255,0.15);
         font-size: 0.78rem;
         font-weight: 800;
-        backdrop-filter: blur(10px);
         white-space: nowrap;
     }
 
@@ -146,7 +145,7 @@ st.markdown(
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.90));
         border-right: 1px solid var(--mt-border);
-        backdrop-filter: blur(12px);
+        /* niente blur globale: più fluido durante scroll e rerun */
     }
 
     section[data-testid="stSidebar"] > div {
@@ -173,7 +172,6 @@ st.markdown(
         min-height: 118px;
         background: rgba(255,255,255,0.72);
         box-shadow: 0 10px 28px rgba(15,23,42,0.06);
-        backdrop-filter: blur(12px);
         position: relative;
         overflow: hidden;
         transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -190,8 +188,7 @@ st.markdown(
     }
 
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 16px 38px rgba(15,23,42,0.10);
+        box-shadow: 0 12px 28px rgba(15,23,42,0.08);
     }
 
     div[data-testid="stMetricLabel"] {
@@ -213,7 +210,6 @@ st.markdown(
         border-color: rgba(255,255,255,0.82);
         background: rgba(255,255,255,0.62);
         box-shadow: 0 10px 26px rgba(15,23,42,0.05);
-        backdrop-filter: blur(10px);
     }
 
     /* INPUT */
@@ -239,8 +235,7 @@ st.markdown(
 
     .stButton > button:hover,
     .stDownloadButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 24px rgba(15,23,42,0.09);
+        box-shadow: 0 10px 20px rgba(15,23,42,0.08);
         border-color: rgba(37,99,235,0.18);
     }
 
@@ -279,6 +274,15 @@ st.markdown(
     div[data-testid="stCaptionContainer"] {
         margin-bottom: 1.15rem;
         color: var(--mt-muted);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
     }
 
     @media (max-width: 700px) {
