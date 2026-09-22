@@ -1136,6 +1136,82 @@ if selected_rows:
             format_speed(famiglia_tempo_mediano),
         )
 
+    family_listings = (
+        selected_family_data
+        .sort_values(
+            "detected_sold_at",
+            ascending=False,
+        )
+        .copy()
+    )
+
+    if selected_family != "Altro / non riconosciuto":
+        family_listings = family_listings.head(50).copy()
+
+    family_listings["Prezzo"] = family_listings["price"].apply(format_price)
+    family_listings["Venduto in"] = family_listings["sale_time_hours"].apply(format_speed)
+    family_listings["Rilevato venduto"] = (
+        family_listings["detected_sold_at"]
+        .dt.tz_convert("Europe/Rome")
+        .dt.strftime("%d/%m/%Y %H:%M")
+        .fillna("-")
+    )
+
+    family_listings = family_listings.rename(
+        columns={
+            "title": "Titolo",
+            "url": "Link",
+        }
+    )
+
+    rows = []
+    for _, row in family_listings.iterrows():
+        titolo = escape(str(row["Titolo"]))
+        prezzo = escape(str(row["Prezzo"]))
+        venduto_in = escape(str(row["Venduto in"]))
+        rilevato = escape(str(row["Rilevato venduto"]))
+        link = str(row["Link"]).strip() if pd.notna(row["Link"]) else ""
+
+        if link.startswith("http://") or link.startswith("https://"):
+            titolo_html = (
+                f'<a href="{escape(link, quote=True)}" target="_blank" '
+                f'style="font-weight:700;text-decoration:none">{titolo}</a>'
+            )
+        else:
+            titolo_html = titolo
+
+        rows.append(
+            "<tr>"
+            f"<td>{titolo_html}</td>"
+            f"<td>{prezzo}</td>"
+            f"<td>{venduto_in}</td>"
+            f"<td>{rilevato}</td>"
+            "</tr>"
+        )
+
+    st.markdown(
+        """
+        <div style="overflow-x:auto;max-height:520px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr>
+                    <th style="text-align:left;padding:10px">Titolo</th>
+                    <th style="text-align:left;padding:10px">Prezzo</th>
+                    <th style="text-align:left;padding:10px">Venduto in</th>
+                    <th style="text-align:left;padding:10px">Rilevato venduto</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        + "".join(rows)
+        + """
+            </tbody>
+        </table>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("#### 📈 Andamento prezzo")
 
     periodo_prezzo = st.segmented_control(
@@ -1216,81 +1292,7 @@ if selected_rows:
             f"negli ultimi {periodo_prezzo} giorni."
         )
 
-    family_listings = (
-        selected_family_data
-        .sort_values(
-            "detected_sold_at",
-            ascending=False,
-        )
-        .copy()
-    )
 
-    if selected_family != "Altro / non riconosciuto":
-        family_listings = family_listings.head(50).copy()
-
-    family_listings["Prezzo"] = family_listings["price"].apply(format_price)
-    family_listings["Venduto in"] = family_listings["sale_time_hours"].apply(format_speed)
-    family_listings["Rilevato venduto"] = (
-        family_listings["detected_sold_at"]
-        .dt.tz_convert("Europe/Rome")
-        .dt.strftime("%d/%m/%Y %H:%M")
-        .fillna("-")
-    )
-
-    family_listings = family_listings.rename(
-        columns={
-            "title": "Titolo",
-            "url": "Link",
-        }
-    )
-
-    rows = []
-    for _, row in family_listings.iterrows():
-        titolo = escape(str(row["Titolo"]))
-        prezzo = escape(str(row["Prezzo"]))
-        venduto_in = escape(str(row["Venduto in"]))
-        rilevato = escape(str(row["Rilevato venduto"]))
-        link = str(row["Link"]).strip() if pd.notna(row["Link"]) else ""
-
-        if link.startswith("http://") or link.startswith("https://"):
-            titolo_html = (
-                f'<a href="{escape(link, quote=True)}" target="_blank" '
-                f'style="font-weight:700;text-decoration:none">{titolo}</a>'
-            )
-        else:
-            titolo_html = titolo
-
-        rows.append(
-            "<tr>"
-            f"<td>{titolo_html}</td>"
-            f"<td>{prezzo}</td>"
-            f"<td>{venduto_in}</td>"
-            f"<td>{rilevato}</td>"
-            "</tr>"
-        )
-
-    st.markdown(
-        """
-        <div style="overflow-x:auto;max-height:520px;overflow-y:auto">
-        <table style="width:100%;border-collapse:collapse">
-            <thead>
-                <tr>
-                    <th style="text-align:left;padding:10px">Titolo</th>
-                    <th style="text-align:left;padding:10px">Prezzo</th>
-                    <th style="text-align:left;padding:10px">Venduto in</th>
-                    <th style="text-align:left;padding:10px">Rilevato venduto</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        + "".join(rows)
-        + """
-            </tbody>
-        </table>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 st.divider()
