@@ -226,6 +226,16 @@ def detect_family(title):
             label += f" {storage.upper()}"
         return label
 
+    meta_quest = re.search(
+        r"\b(?:meta\s+)?quest\s*(2|3s|3|pro)\b",
+        text,
+    )
+    if meta_quest:
+        model = meta_quest.group(1).upper()
+        if model == "PRO":
+            return "Meta Quest Pro"
+        return f"Meta Quest {model}"
+
     gopro = re.search(
         r"\bgopro(?:\s+hero)?\s*(\d{1,2})(?:\s+(black|silver|white))?\b",
         text,
