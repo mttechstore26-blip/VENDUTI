@@ -159,6 +159,8 @@ def normalize_text(value):
         .replace("playstaton", "playstation")
         .replace("playstartion", "playstation")
         .replace("potal", "portal")
+        .replace("nitendo", "nintendo")
+        .replace("swich", "switch")
         .replace("metà", "meta")
     )
     text = re.sub(r"[^a-z0-9\s]", " ", text)
