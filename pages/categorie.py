@@ -600,6 +600,57 @@ def detect_family(title, category=None):
         ):
             return "Trading cards"
 
+        # Altri TCG riconoscibili.
+        if re.search(r"\byugioh\b|\byu\s*gi\s*oh\b|\bgalaxy\s+eyes\b", text):
+            return "Yu-Gi-Oh!"
+        if re.search(r"\bone\s+piece\b.*\b(?:tcg|card|box|op\d+)\b|\bop\d+\s+box\b", text):
+            return "One Piece TCG"
+
+        # Giochi da tavolo / boardgame.
+        if re.search(
+            r"\bgioco\s+tavolo\b|\bboardgame\b|\bdescent\b|"
+            r"\bwestern\s+legends\b|\bsword\s+&?\s*sorcery\b",
+            text,
+        ):
+            return "Giochi da tavolo"
+
+        # Arte, stampe e grafica da collezione.
+        if re.search(
+            r"\bukiyo\b|\bkakemono\b|\bpergamena\s+giapponese\b|"
+            r"\bposter\b|\bstampa\b|\bbassorilievi?\b|\bpiero\s+manzoni\b|"
+            r"\bfornasetti\b",
+            text,
+        ):
+            return "Arte / Stampe"
+
+        # Macchine da scrivere e oggetti Olivetti.
+        if re.search(r"\bolivetti\b|\bmacchina\s+da\s+scrivere\b", text):
+            return "Olivetti / Macchine da scrivere"
+
+        # Radio, ricevitori e CB vintage.
+        if re.search(
+            r"\bricevitore\b|\bradio\b|\bantenna\s+cb\b|\bcb\b.*\bantenna\b",
+            text,
+        ):
+            return "Radio / CB vintage"
+
+        # Multi-tool / Victorinox / Leatherman.
+        if re.search(r"\bvictorinox\b|\bleatherman\b", text):
+            return "Multi-tool / Coltellini"
+
+        # Modellini Ferrari/F1 espliciti, se non già catturati da modellini auto.
+        if re.search(
+            r"\bferrari\b.*\b1\s*[:/]\s*(?:18|43|8|7)\b|"
+            r"\bf1\b.*\bmodell|\bdeagostini\b.*\bferrari\b",
+            text,
+        ):
+            return "Modellini Ferrari / F1"
+
+        # Design vintage riconoscibile.
+        if re.search(r"\bartemide\b|\beclisse\b|\bsgabello\s+industriale\b", text):
+            return "Design vintage"
+
+
         # Militaria e memorabilia storica.
         if re.search(
             r"\bww2\b|\bmilitaria\b|\bpnf\b|\bmimetica\b|"
