@@ -203,6 +203,17 @@ def detect_family(title):
             label += f" {variant.upper() if variant == 'fe' else variant.title()}"
         return label
 
+    gopro = re.search(
+        r"\bgopro(?:\s+hero)?\s*(\d{1,2})(?:\s+(black|silver|white))?\b",
+        text,
+    )
+    if gopro:
+        generation, edition = gopro.groups()
+        label = f"GoPro Hero {generation}"
+        if edition:
+            label += f" {edition.title()}"
+        return label
+
     camera_patterns = [
         (r"\bcanon\s+eos\s+([a-z0-9]+)", "Canon EOS"),
         (r"\bsony\s+alpha\s+([a-z0-9]+)", "Sony Alpha"),
