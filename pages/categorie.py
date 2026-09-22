@@ -908,8 +908,15 @@ if selected_rows:
 
     price_cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=periodo_prezzo)
 
-    price_history = selected_family_data[
-        selected_family_data["detected_sold_at"] >= price_cutoff
+    # Il grafico deve usare tutto lo storico disponibile della famiglia,
+    # non il dataset "detail" già limitato agli ultimi 30 giorni.
+    historical_family_data = df[
+        (df["category"] == selected_category)
+        & (df["Famiglia"] == selected_family)
+    ].copy()
+
+    price_history = historical_family_data[
+        historical_family_data["detected_sold_at"] >= price_cutoff
     ].copy()
 
     if not price_history.empty:
