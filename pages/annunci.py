@@ -517,11 +517,14 @@ table = table.rename(
     }
 )
 
+# Il titolo resta leggibile, ma la colonna Prodotto usa direttamente l'URL
+# così il testo visualizzato è cliccabile senza una colonna "Apri" separata.
+table["Prodotto link"] = table["Link"]
+
 st.dataframe(
     table[
         [
-            "Prodotto",
-            "Link",
+            "Prodotto link",
             "Categoria",
             "Prezzo",
             "Venduto in",
@@ -533,9 +536,9 @@ st.dataframe(
     hide_index=True,
     height=560,
     column_config={
-        "Link": st.column_config.LinkColumn(
-            "Apri",
-            display_text="🔗 Annuncio",
+        "Prodotto link": st.column_config.LinkColumn(
+            "Prodotto",
+            display_text=r"([^/]+)(?=\.htm$)",
         ),
         "Prezzo": st.column_config.NumberColumn(
             "Prezzo",
