@@ -257,6 +257,81 @@ def detect_family(title, category=None):
             label += f" {variant.upper() if variant == 'fe' else variant.title()}"
         return label
 
+    # Telefonia: modelli e famiglie utili al sourcing.
+    if "telefonia" in category_text:
+        phone_patterns = [
+            # Google Pixel
+            (r"\b(?:google\s+)?pixel\s*(10|9|8|7|6)(?:\s*(pro|pro\s+xl|xl|a))?\b", "Google Pixel"),
+
+            # Xiaomi / Redmi / Poco
+            (r"\bxiaomi\s*(15|14|13|12|11)(?:\s*(ultra|pro|lite|t|t\s+pro))?\b", "Xiaomi"),
+            (r"\bredmi\s+note\s*(\d{1,2})(?:\s*(pro\+?|pro|s|5g))?\b", "Xiaomi Redmi Note"),
+            (r"\bredmi\s*(\d{1,2})(?:\s*(c|a|note|pro|5g))?\b", "Xiaomi Redmi"),
+            (r"\bpoco\s*(x|f|m|c)\s*(\d{1,2})(?:\s*(pro|ultra|gt))?\b", "POCO"),
+
+            # OnePlus / Nothing
+            (r"\boneplus\s*(\d{1,2})(?:\s*(pro|r|t))?\b", "OnePlus"),
+            (r"\bnothing\s+phone\s*\(?\s*(\d[a-z]?)\s*\)?\b", "Nothing Phone"),
+            (r"\bcmf\s+phone\s*(\d+)\b", "CMF Phone"),
+
+            # Motorola
+            (r"\bmotorola\s+edge\s*(\d{1,2})(?:\s*(pro|neo|fusion|ultra))?\b", "Motorola Edge"),
+            (r"\bmoto\s+g\s*(\d{1,3})(?:\s*(power|stylus|5g))?\b", "Motorola Moto G"),
+            (r"\bmotorola\s+razr\s*(\d{2})?(?:\s*(ultra|plus))?\b", "Motorola Razr"),
+
+            # Honor / Huawei
+            (r"\bhonor\s*(magic\s*\d+|\d{2,3})(?:\s*(pro|lite))?\b", "Honor"),
+            (r"\bhuawei\s+(p|mate)\s*(\d{2,3})(?:\s*(pro|lite))?\b", "Huawei"),
+
+            # OPPO / Realme
+            (r"\boppo\s+(find\s+[a-z]\d+|reno\s*\d+|a\d{2,3})(?:\s*(pro|lite|neo))?\b", "OPPO"),
+            (r"\brealme\s*(gt\s*\d+|\d{1,2})(?:\s*(pro|plus|neo))?\b", "Realme"),
+
+            # Sony Xperia / Nokia / Asus
+            (r"\bsony\s+xperia\s*(1|5|10)(?:\s*(ii|iii|iv|v|vi))?\b", "Sony Xperia"),
+            (r"\bnokia\s+([a-z]?\d{1,3})(?:\s*(plus|5g))?\b", "Nokia"),
+            (r"\basus\s+zenfone\s*(\d{1,2})\b", "ASUS Zenfone"),
+            (r"\basus\s+rog\s+phone\s*(\d{1,2})\b", "ASUS ROG Phone"),
+        ]
+
+        for pattern, brand in phone_patterns:
+            match = re.search(pattern, text)
+            if match:
+                groups = [g for g in match.groups() if g]
+                model = " ".join(groups)
+                model = re.sub(r"\s+", " ", model).strip()
+                return f"{brand} {model}".strip()
+
+        # Samsung Fold / Flip possono non seguire il parser Galaxy numerico.
+        samsung_fold = re.search(
+            r"\b(?:samsung\s+)?galaxy\s+z\s*(fold|flip)\s*(\d{1,2})\b",
+            text,
+        )
+        if samsung_fold:
+            kind, generation = samsung_fold.groups()
+            return f"Samsung Galaxy Z {kind.title()} {generation}"
+
+        # Wearable e telefoni semplici che ricorrono spesso in Telefonia.
+        if re.search(r"\bapple\s+watch\s+(ultra\s*\d*|series\s*\d+|se)\b", text):
+            watch = re.search(
+                r"\bapple\s+watch\s+(ultra\s*\d*|series\s*\d+|se)\b",
+                text,
+            )
+            return f"Apple Watch {watch.group(1).title()}"
+
+        if re.search(r"\bgalaxy\s+watch\s*(\d+|ultra|classic)\b", text):
+            watch = re.search(r"\bgalaxy\s+watch\s*(\d+|ultra|classic)\b", text)
+            return f"Samsung Galaxy Watch {watch.group(1).title()}"
+
+        if re.search(r"\bsmartwatch\b", text):
+            return "Smartwatch"
+
+        if re.search(r"\btelefono\s+fisso\b|\bcordless\b", text):
+            return "Telefoni fissi / Cordless"
+
+        if re.search(r"\bcover\b|\bcustodia\b|\bpellicola\b|\bcaricatore\b|\bcharger\b", text):
+            return "Accessori telefonia"
+
     insta360 = re.search(
         r"\binsta\s*360\s+(go\s*\d+[a-z]?|x\s*\d+|ace\s*pro\s*\d*|one\s*[a-z0-9]+)(?:\s+\d{2,4}gb)?\b",
         text,
