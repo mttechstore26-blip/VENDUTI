@@ -831,6 +831,216 @@ def detect_family(title, category=None):
         ):
             return "Action figure / Statue"
 
+    # Informatica: famiglie tecniche e modelli utili al sourcing.
+    if "informatica" in category_text:
+        # GPU NVIDIA RTX / GTX
+        gpu_nvidia = re.search(
+            r"\b(?:nvidia\s+|geforce\s+)?(rtx|gtx)\s*(\d{3,4})(?:\s*(ti|super))?\b",
+            text,
+        )
+        if gpu_nvidia:
+            series, model, variant = gpu_nvidia.groups()
+            label = f"NVIDIA {series.upper()} {model}"
+            if variant:
+                label += f" {variant.upper()}"
+            return label
+
+        # GPU AMD Radeon RX
+        gpu_amd = re.search(
+            r"\b(?:amd\s+|radeon\s+)?rx\s*(\d{3,4})(?:\s*(xt|gre|xtx))?\b",
+            text,
+        )
+        if gpu_amd:
+            model, variant = gpu_amd.groups()
+            label = f"AMD Radeon RX {model}"
+            if variant:
+                label += f" {variant.upper()}"
+            return label
+
+        # CPU AMD Ryzen
+        ryzen = re.search(
+            r"\bryzen\s*([3579])\s*(\d{4})(?:\s*(x3d|x|g|u|h|hs|hx))?\b",
+            text,
+        )
+        if ryzen:
+            tier, model, suffix = ryzen.groups()
+            label = f"AMD Ryzen {tier} {model}"
+            if suffix:
+                label += f" {suffix.upper()}"
+            return label
+
+        # CPU Intel Core / Core Ultra
+        core_ultra = re.search(
+            r"\bcore\s+ultra\s*([579])\s*(\d{3}[a-z]?)\b",
+            text,
+        )
+        if core_ultra:
+            tier, model = core_ultra.groups()
+            return f"Intel Core Ultra {tier} {model.upper()}"
+
+        intel = re.search(
+            r"\b(?:intel\s+)?(?:core\s+)?i([3579])[-\s]?(\d{4,5})([a-z]{0,2})\b",
+            text,
+        )
+        if intel:
+            tier, model, suffix = intel.groups()
+            label = f"Intel Core i{tier}-{model}"
+            if suffix:
+                label += suffix.upper()
+            return label
+
+        # Handheld PC / gaming PC portatili
+        handheld_patterns = [
+            (r"\bsteam\s+deck\s+oled\b", "Steam Deck OLED"),
+            (r"\bsteam\s+deck\b", "Steam Deck"),
+            (r"\brog\s+ally\s+x\b", "ASUS ROG Ally X"),
+            (r"\brog\s+ally\b", "ASUS ROG Ally"),
+            (r"\blegion\s+go\s+s\b", "Lenovo Legion Go S"),
+            (r"\blegion\s+go\b", "Lenovo Legion Go"),
+            (r"\bmsi\s+claw\b", "MSI Claw"),
+        ]
+        for pattern, label in handheld_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # NAS
+        synology = re.search(r"\bsynology\s+(ds\d{3,4}\+?)\b", text)
+        if synology:
+            return f"Synology {synology.group(1).upper()}"
+
+        qnap = re.search(r"\bqnap\s+([a-z]{2,4}[-\s]?\d{3,4}[a-z0-9\-]*)\b", text)
+        if qnap:
+            return f"QNAP {qnap.group(1).upper().replace(' ', '-')}"
+
+        if re.search(r"\bnas\b", text):
+            return "NAS"
+
+        # SSD / NVMe
+        if re.search(r"\bnvme\b|\bssd\b", text):
+            if re.search(r"\bsamsung\s+990\s+pro\b", text):
+                return "SSD Samsung 990 Pro"
+            if re.search(r"\bsamsung\s+980\s+pro\b", text):
+                return "SSD Samsung 980 Pro"
+            if re.search(r"\bwd\s+black\s+sn850x\b", text):
+                return "SSD WD Black SN850X"
+            if re.search(r"\bcrucial\s+t700\b", text):
+                return "SSD Crucial T700"
+            if re.search(r"\bcrucial\s+p5\s+plus\b", text):
+                return "SSD Crucial P5 Plus"
+            if re.search(r"\bm\s*2\b|\bnvme\b", text):
+                return "SSD NVMe / M.2"
+            return "SSD"
+
+        # RAM
+        if re.search(r"\b(?:ddr[345]|ram)\b", text):
+            if re.search(r"\bddr5\b", text):
+                return "RAM DDR5"
+            if re.search(r"\bddr4\b", text):
+                return "RAM DDR4"
+            if re.search(r"\bddr3\b", text):
+                return "RAM DDR3"
+            return "RAM"
+
+        # Schede madri
+        if re.search(
+            r"\bscheda\s+madre\b|\bmotherboard\b|"
+            r"\b(?:b[45678]\d0|x[45678]\d0|z[45678]\d0|a[45678]\d0)\b",
+            text,
+        ):
+            chipset = re.search(
+                r"\b(b[45678]\d0|x[45678]\d0|z[45678]\d0|a[45678]\d0)\b",
+                text,
+            )
+            if chipset:
+                return f"Scheda madre {chipset.group(1).upper()}"
+            return "Schede madri"
+
+        # Mini PC
+        mini_pc_patterns = [
+            (r"\bmac\s+mini\b", "Mac mini"),
+            (r"\bintel\s+nuc\b|\bnuc\s+\d", "Intel NUC"),
+            (r"\bbeelink\b", "Beelink Mini PC"),
+            (r"\bminisforum\b", "Minisforum Mini PC"),
+            (r"\bgeekom\b", "GEEKOM Mini PC"),
+        ]
+        for pattern, label in mini_pc_patterns:
+            if re.search(pattern, text):
+                return label
+        if re.search(r"\bmini\s*pc\b", text):
+            return "Mini PC"
+
+        # Notebook / workstation: altre linee ricorrenti
+        laptop_patterns = [
+            (r"\bmsi\s+(?:katana|raider|vector|stealth|prestige|modern)\b", "MSI Notebook"),
+            (r"\bacer\s+nitro\b", "Acer Nitro"),
+            (r"\bacer\s+predator\b", "Acer Predator"),
+            (r"\bacer\s+aspire\b", "Acer Aspire"),
+            (r"\basus\s+vivobook\b", "ASUS VivoBook"),
+            (r"\basus\s+zenbook\b", "ASUS ZenBook"),
+            (r"\bhp\s+omen\b", "HP Omen"),
+            (r"\bhp\s+victus\b", "HP Victus"),
+            (r"\bdell\s+precision\b", "Dell Precision"),
+            (r"\blenovo\s+loq\b", "Lenovo LOQ"),
+            (r"\blenovo\s+yoga\b", "Lenovo Yoga"),
+            (r"\bmicrosoft\s+surface\s+pro\b", "Microsoft Surface Pro"),
+            (r"\bmicrosoft\s+surface\s+laptop\b", "Microsoft Surface Laptop"),
+        ]
+        for pattern, label in laptop_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Monitor
+        if re.search(r"\bmonitor\b|\bdisplay\b", text):
+            if re.search(r"\bodyssey\b", text):
+                return "Samsung Odyssey"
+            if re.search(r"\bultragear\b", text):
+                return "LG UltraGear"
+            if re.search(r"\bproart\b", text):
+                return "ASUS ProArt"
+            return "Monitor"
+
+        # Router / Mesh / networking
+        networking_patterns = [
+            (r"\bfritz!?box\b", "AVM FRITZ!Box"),
+            (r"\bdeco\b.*\btp\s*link\b|\btp\s*link\b.*\bdeco\b", "TP-Link Deco"),
+            (r"\bunifi\b|\bubiquiti\b", "Ubiquiti UniFi"),
+            (r"\beero\b", "Amazon eero"),
+            (r"\borbi\b", "Netgear Orbi"),
+        ]
+        for pattern, label in networking_patterns:
+            if re.search(pattern, text):
+                return label
+        if re.search(r"\brouter\b|\bmesh\b|\bswitch\s+ethernet\b|\baccess\s+point\b", text):
+            return "Networking"
+
+        # Stampanti / scanner
+        if re.search(r"\bstampante\b|\bprinter\b", text):
+            if re.search(r"\blaser\b", text):
+                return "Stampanti laser"
+            return "Stampanti"
+        if re.search(r"\bscanner\b", text):
+            return "Scanner"
+
+        # Server / workstation desktop
+        if re.search(r"\bserver\b|\bpoweredge\b", text):
+            return "Server"
+        if re.search(r"\bworkstation\b|\bthinkstation\b|\bz\s*workstation\b", text):
+            return "Workstation"
+
+        # PC desktop / gaming assemblati
+        if re.search(
+            r"\bpc\s+gaming\b|\bgaming\s+pc\b|\bpc\s+fisso\b|"
+            r"\bdesktop\b|\bcomputer\s+fisso\b",
+            text,
+        ):
+            return "PC Desktop / Gaming"
+
+        # Alimentatori e case
+        if re.search(r"\balimentatore\b|\bpower\s+supply\b|\bpsu\b", text):
+            return "Alimentatori PC"
+        if re.search(r"\bcase\s+pc\b|\bcabinet\s+pc\b", text):
+            return "Case PC"
+
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
         (r"\blenovo\s+ideapad\b", "Lenovo IdeaPad"),
