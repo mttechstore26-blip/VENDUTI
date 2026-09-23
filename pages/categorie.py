@@ -1584,6 +1584,102 @@ def detect_family(title, category=None):
         if re.search(r"\bsteam\s+deck\b|\bayn\b|\bodin\b|\bhandheld\b", text):
             return "Handheld • Altro"
 
+    # Tutto per i bambini: famiglie basate sui titoli reali.
+    if "tutto per i bambini" in category_text or "bambini" in category_text:
+        kids_patterns = [
+            # LEGO e costruzioni
+            (r"\blego\b.*\btechnic\b|\blego\b.*\b421\d+\b", "LEGO • Technic"),
+            (r"\blego\b.*\bharry\s+potter\b|\blego\b.*\b71043\b", "LEGO • Harry Potter"),
+            (r"\blego\b.*\bstar\s+wars\b|\blego\b.*\bx[\s-]*wing\b|\blego\b.*\btie\s+fighter\b", "LEGO • Star Wars"),
+            (r"\blego\b.*\bcastle\b|\blego\b.*\bbarracuda\b", "LEGO • Castle / Pirati"),
+            (r"\blego\b.*\b(?:spiderman|marvel|daily\s+bugle)\b", "LEGO • Marvel"),
+            (r"\blego\b.*\bduplo\b", "LEGO • Duplo"),
+            (r"\blego\b.*\bbionicle\b", "LEGO • Bionicle"),
+            (r"\blego\b.*\bminifig", "LEGO • Minifigures"),
+            (r"\blego\b.*\b(?:sfusi|mattoncini|varie|combo)\b", "LEGO • Sfusi / Lotti"),
+            (r"\blego\b.*\b(\d{4,6})\b", "LEGO • Set"),
+            (r"\blego\b|\blegoo\b", "LEGO • Altro"),
+
+            # Passeggini / trio / telai
+            (r"\bcybex\b.*\bgazelle\b", "Passeggini • Cybex Gazelle"),
+            (r"\bcybex\b", "Passeggini / Seggiolini • Cybex"),
+            (r"\binglesina\b.*\b(?:twin\s+sketch|quid2|electa)\b", "Passeggini • Inglesina"),
+            (r"\bfoppapedretti\b.*\b(?:trio|passeggino)\b", "Passeggini • Foppapedretti"),
+            (r"\bjoolz\b.*\b(?:aer|aer2)\b", "Passeggini • Joolz Aer"),
+            (r"\bbugaboo\b.*\bbutterfly\b|\bbugaboo\b.*\bbuterfly\b", "Passeggini • Bugaboo Butterfly"),
+            (r"\bvalco\s*baby\b.*\bsnap\s*4\b|\bvalcobany\b.*\bsnap\s*4\b", "Passeggini • Valco Baby Snap 4"),
+            (r"\bgb\s+pockit\b", "Passeggini • GB Pockit"),
+            (r"\bmast\b.*\bpasseggino\b|\bpasseggino\b.*\bmast\b", "Passeggini • MAST"),
+            (r"\bpasseggino\b|\btrio\b|\bnavicella\b|\btelaio\b", "Passeggini / Trio"),
+
+            # Seggiolini / basi auto
+            (r"\bcybex\s+pallas\b", "Seggiolini auto • Cybex Pallas"),
+            (r"\bbritax\b.*\bromer\b", "Seggiolini auto • Britax Römer"),
+            (r"\bdoona\b", "Seggiolini auto • Doona"),
+            (r"\bnuna\b.*\b(?:base\s+next|arra\s+next)\b", "Seggiolini auto • Nuna"),
+            (r"\bisofix\b", "Seggiolini auto • Base ISOFIX"),
+            (r"\bseggiolino\b|\bovetto\b", "Seggiolini auto"),
+
+            # Culle / lettini / next2me
+            (r"\bnext2me\b", "Culle • Chicco Next2Me"),
+            (r"\bstokke\b.*\bculla\b", "Culle • Stokke"),
+            (r"\bculla\b.*\bfoppapedretti\b", "Culle • Foppapedretti"),
+            (r"\bculla\b", "Culle"),
+            (r"\blettino\b", "Lettini"),
+            (r"\bfasciatoio\b", "Fasciatoi"),
+
+            # Seggioloni / sedie evolutive
+            (r"\bstokke\b.*\b(?:tripp?\s*trapp|seggiolone|sedia)\b|\btripp?\s*trapp\b", "Seggioloni • Stokke Tripp Trapp"),
+            (r"\bhauck\b.*\bsedia\b", "Seggioloni • Hauck"),
+            (r"\bseggiolone\b", "Seggioloni"),
+
+            # Sdraiette
+            (r"\bmamaroo\b|\b4moms\b", "Sdraiette • 4moms mamaRoo"),
+            (r"\bsdraietta\b", "Sdraiette"),
+
+            # Marsupi / zaini porta-bimbo
+            (r"\bminimeis\b", "Marsupi / Porta-bimbo • MiniMeis"),
+            (r"\bbaby\s+monkey\b.*\bmarsupio\b", "Marsupi / Porta-bimbo • Baby Monkey"),
+            (r"\bmarsupio\b|\bzaino\s+porta\s+bimbo\b", "Marsupi / Porta-bimbo"),
+
+            # Carrelli bici / mobilità bambini
+            (r"\bqueridoo\b|\bcarrellino\b.*\bbici\b|\bcarrello\s+porta\s+bimbi\b", "Carrelli bici bambini"),
+            (r"\bmonopattino\b.*\b(?:bambin|highwaykick)\b", "Mobilità bambini • Monopattino"),
+            (r"\b(?:moto|vespa|quad)\b.*\bbambin", "Veicoli elettrici bambini"),
+            (r"\btriciclo\b", "Tricicli"),
+
+            # Giochi / brand
+            (r"\bfaba\b", "FABA"),
+            (r"\bsylvanian\s+families\b", "Sylvanian Families"),
+            (r"\bbarbie\b.*\b(?:dreamhouse|casa\s+dei\s+sogni)\b", "Barbie • Dreamhouse"),
+            (r"\bbarbie\b", "Barbie"),
+            (r"\bbeyblade\b", "Beyblade"),
+            (r"\bbruder\b", "Bruder"),
+            (r"\bhot\s*wheels\b|\bmatchbox\b", "Hot Wheels / Matchbox"),
+            (r"\bgormiti\b", "Gormiti"),
+            (r"\bemiglio\b", "Emiglio"),
+            (r"\bwinx\b", "Winx"),
+            (r"\bpinypon\b", "Pinypon"),
+            (r"\bmontessori\b|\blovevery\b", "Giochi educativi / Montessori"),
+            (r"\bpeluche\b|\bsquishy\b", "Peluche / Squishy"),
+            (r"\bgiocattoli?\s+vintage\b|\bgiochi\s+misti\b", "Giocattoli vintage / Lotti"),
+
+            # Pokémon / collezionabili
+            (r"\bpokemon\b", "Pokémon"),
+            (r"\baction\s+figure\b|\bfigure\b|\bcavalieri\s+dello\s+zodiaco\b", "Action figure"),
+
+            # Prima infanzia / accessori
+            (r"\btiralatte\b", "Prima infanzia • Tiralatte"),
+            (r"\bpannolini\b", "Prima infanzia • Pannolini"),
+            (r"\bpiscina\s+gonfiabile\b", "Giochi da esterno • Piscine"),
+            (r"\bcasetta\b.*\bbambin", "Giochi da esterno • Casette"),
+            (r"\bcucina\s+giocattolo\b", "Giochi di ruolo • Cucine"),
+        ]
+
+        for pattern, label in kids_patterns:
+            if re.search(pattern, text):
+                return label
+
     # Elettrodomestici: secondo pass basato sui titoli reali rimasti in Altro.
     if "elettrodomestici" in category_text or "eletrodomestici" in category_text:
         appliance_patterns = [
