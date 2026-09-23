@@ -1584,6 +1584,124 @@ def detect_family(title, category=None):
         if re.search(r"\bsteam\s+deck\b|\bayn\b|\bodin\b|\bhandheld\b", text):
             return "Handheld • Altro"
 
+    # Elettrodomestici: secondo pass basato sui titoli reali rimasti in Altro.
+    if "elettrodomestici" in category_text or "eletrodomestici" in category_text:
+        appliance_patterns = [
+            # Vorwerk / Bimby / Folletto
+            (r"\bbimby\s*(?:tm|t)?\s*31\b|\bbimby\s+t31\b", "Bimby TM31"),
+            (r"\bbimby\s*tm21\b", "Bimby TM21"),
+            (r"\bbimby\s*tm6\b|\bboccale\s+tm6\b", "Bimby TM6"),
+            (r"\bbimby\s*tm7\b|\bboccale\s+tm7\b", "Bimby TM7"),
+            (r"\bbimby\b", "Bimby • Modello non identificato"),
+            (r"\bfolletto\s+vr7s\b", "Folletto VR7S"),
+            (r"\bfolletto\s+vr300\b", "Folletto VR300"),
+            (r"\bfolletto\s+(?:vk|wk)\s*135\b", "Folletto VK135"),
+            (r"\bfolletto\s+(?:vk|wk)\s*140\b", "Folletto VK140"),
+            (r"\bfolletto\s+vk\s*150\b", "Folletto VK150"),
+            (r"\bfolletto\s+vk\s*200\b", "Folletto VK200"),
+            (r"\bfolletto\s+vk\s*220s\b", "Folletto VK220S"),
+            (r"\b(?:folletto|vorwerk)\b.*\bvk7s\b|\bvk7s\b", "Folletto VK7S"),
+            (r"\bfolletto\b|\bvorwerk\b", "Folletto / Vorwerk • Altro"),
+
+            # Robot / aspirazione / lavapavimenti
+            (r"\becovacs\s+deebot\s+t50\s+pro\s+omni\b", "Robot • Ecovacs Deebot T50 Pro Omni"),
+            (r"\becovacs\s+winbot\b|\bconga\s+windroid\b", "Robot lavavetri"),
+            (r"\bmova\s+p50\s+ultra\b", "Robot • Mova P50 Ultra"),
+            (r"\broomba\s+plus\s*505\b", "Robot • Roomba Plus 505"),
+            (r"\bxiaomi\s+x20\+?\b", "Robot • Xiaomi X20+"),
+            (r"\blefant\s+m3\b", "Robot • Lefant M3"),
+            (r"\baspirapolvere\s+robot\b|\brobot\s+aspirapolvere\b", "Robot aspirapolvere"),
+            (r"\btineco\s+s7\b", "Lavapavimenti • Tineco S7"),
+            (r"\btineco\s+s9\b", "Lavapavimenti • Tineco S9"),
+            (r"\btineco\b", "Lavapavimenti • Tineco"),
+            (r"\bbissell\s+spotclean\b", "Lavapavimenti • Bissell SpotClean"),
+            (r"\bbissell\s+crosswave\b", "Lavapavimenti • Bissell CrossWave"),
+            (r"\browenta\s+x[\s-]*clean\s*10\b", "Lavapavimenti • Rowenta X-Clean 10"),
+            (r"\brotowash\b", "Lavapavimenti • Rotowash"),
+            (r"\blavapavimenti\b", "Lavapavimenti"),
+            (r"\baspirapolvere\b|\baspiratore\b", "Aspirapolvere / Aspiratori"),
+
+            # Frigo / congelatori / cantinette
+            (r"\bfrigo(?:rifero)?\b.*\bsmeg\b|\bsmeg\b.*\bfrigo", "Frigoriferi • Smeg"),
+            (r"\bfrigo(?:rifero)?\b.*\bindesit\b", "Frigoriferi • Indesit"),
+            (r"\bred\s*bull\b.*\bmini\s*frigo\b|\bredbull\b.*\bmini\s*frigo\b", "Minifrigo • Red Bull"),
+            (r"\bfrigo\s+vetrina\b", "Frigoriferi • Vetrina"),
+            (r"\bmini\s*frigo\b|\bfrigo\s+da\s+campeggio\b", "Minifrigo"),
+            (r"\bcantina\s+frigo\b|\bcantinetta\s+per\s+vino\b", "Cantinette vino"),
+            (r"\bcongelatore\b", "Congelatori"),
+            (r"\bfrigo\b|\bfrigorifero\b", "Frigoriferi"),
+
+            # Climatizzazione / riscaldamento
+            (r"\bcondizionatore\b|\bclimatizzatore\b|\baria\s+condizionata\b|\bclima\s+portatile\b", "Climatizzazione"),
+            (r"\bpinguino\b", "Climatizzazione • Portatile"),
+            (r"\bdeumidificatore\b|\btrotec\s+ttk\b", "Deumidificatori"),
+            (r"\btermoconvettor\b|\bradiatore\s+elettrico\b|\bstufa\s+a\s+pellet\b", "Riscaldamento"),
+            (r"\btermostato\b|\bcronotermostat", "Termostati"),
+            (r"\btado\b", "Domotica • Tado"),
+
+            # Caffè / cucina
+            (r"\bnespresso\s+creatista\s+pro\b", "Caffè • Nespresso Creatista Pro"),
+            (r"\bnespresso\s+(?:gran\s+)?lattissima\b", "Caffè • Nespresso Lattissima"),
+            (r"\bnespresso\b", "Caffè • Nespresso"),
+            (r"\bdelonghi\s+magnifica\s+evo\b", "Caffè • DeLonghi Magnifica Evo"),
+            (r"\bgaggia\s+classic\b", "Caffè • Gaggia Classic"),
+            (r"\bla\s+pavoni\b", "Caffè • La Pavoni"),
+            (r"\blavazza\b", "Caffè • Lavazza"),
+            (r"\beureka\b.*\bmacin", "Caffè • Macinacaffè Eureka"),
+            (r"\bmacin(?:a|ino)caff", "Caffè • Macinacaffè"),
+            (r"\bmacchina\s+da\s+caffe\b|\bmacchia\s+da\s+caffe\b", "Caffè • Macchine"),
+            (r"\bkitchen\s*aid\b|\bkitcheaid\b", "Planetarie • KitchenAid"),
+            (r"\bkenwood\s+(?:chef\s+xl|kvl4100s|kmix)\b", "Planetarie • Kenwood"),
+            (r"\bplanetaria\b|\bimpastatrice\b", "Planetarie / Impastatrici"),
+            (r"\bmonsieur\s+cuisine\b|\bmousiere\s+cousine\b", "Robot cucina • Monsieur Cuisine"),
+            (r"\bsilver\s*crest\b.*\brobot\s+cucina\b", "Robot cucina • SilverCrest"),
+            (r"\bfriggitrice\s+aria\b", "Friggitrici ad aria"),
+            (r"\bmacchina\s+gelato\b|\bgelateria\s+professionale\b", "Gelatiere"),
+            (r"\bgranitore\b", "Granitori"),
+            (r"\bmacchina\s+sottovuoto\b", "Macchine sottovuoto"),
+            (r"\bessiccatore\b|\bessicatore\b", "Essiccatori"),
+            (r"\btritacarne\b|\bpassata\s+di\s+pomodoro\b|\bspremipomodoro\b", "Preparazione alimenti"),
+            (r"\bspillatore\b|\bspillatrice\b|\bperfectdraft\b", "Spillatori birra"),
+            (r"\bnutella\b.*\b(?:dosatore|dispenser|erogatore)\b|\b(?:dosatore|dispenser|erogatore)\b.*\bnutella\b", "Dispenser Nutella"),
+            (r"\bforno\b", "Forni"),
+
+            # Beauty / cura persona
+            (r"\bbraun\b.*\bserie\s*9\b|\brasoi?o\b.*\bbraun\b", "Rasoi • Braun"),
+            (r"\bphilips\s+shaver\b|\brasoi?o\b.*\bphilips\b", "Rasoi • Philips"),
+            (r"\brasoi?o\b.*\bpanasonic\b", "Rasoi • Panasonic"),
+            (r"\bphilips\s+lumea\b", "Beauty • Philips Lumea"),
+            (r"\bbraun\s+silk\s+expert\b", "Beauty • Braun Silk-expert"),
+            (r"\bghd\b", "Beauty • GHD"),
+            (r"\bphon\b|\bsupersoni[c]?\b", "Beauty • Asciugacapelli"),
+            (r"\bpressoterapia\b", "Beauty / Benessere • Pressoterapia"),
+
+            # Energia / domotica / impianti
+            (r"\bbluetti\b", "Energia • Bluetti"),
+            (r"\bpower\s+station\b", "Energia • Power station"),
+            (r"\becoflow\b.*\binverter\b", "Energia • EcoFlow"),
+            (r"\binverter\b", "Energia • Inverter"),
+            (r"\bshelly\b", "Domotica • Shelly"),
+            (r"\bvimar\b", "Domotica / Elettrico • Vimar"),
+            (r"\bvelux\b", "Automazione • Velux"),
+            (r"\bgrundfos\b|\bdanfoss\b|\belettropomp", "Impianti • Pompe"),
+            (r"\bdepuratore\b|\bosmosi\b", "Depurazione acqua"),
+
+            # Altri elettrodomestici / professionali
+            (r"\bbambu\s*lab\s+a1\b|\bbambulab\s+a1\b", "Stampa 3D • Bambu Lab A1"),
+            (r"\bcricut\s+maker\s*3\b", "Craft • Cricut Maker 3"),
+            (r"\bmacchina\s+taglio\s+laser\b|\bmecpow\b", "Macchine laser"),
+            (r"\bidropulitrice\b", "Idropulitrici"),
+            (r"\babbattitore\s+di\s+temperatura\b", "Professionale cucina • Abbattitori"),
+            (r"\bfontana\s+di\s+cioccolato\b", "Professionale cucina • Cioccolato"),
+            (r"\bzucchero\s+filato\b", "Professionale cucina • Zucchero filato"),
+            (r"\btagliamozzarella\b", "Professionale cucina • Tagliamozzarella"),
+            (r"\bmacchina\s+di\s+rimaglio\b|\btagliacuci\b", "Cucito / Tessile"),
+        ]
+
+        for pattern, label in appliance_patterns:
+            if re.search(pattern, text):
+                return label
+
     # Sport: famiglie utili per il sourcing.
     if "sport" in category_text:
         sport_patterns = [
