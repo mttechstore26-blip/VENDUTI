@@ -1534,6 +1534,103 @@ def detect_family(title, category=None):
         if re.search(r"\bcase\s+pc\b|\bcabinet\s+pc\b", text):
             return "Case PC"
 
+    # Sport: famiglie utili per il sourcing.
+    if "sport" in category_text:
+        sport_patterns = [
+            # Ciclismo / e-bike
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\btrek\b|\btrek\b.*\b(?:bike|mtb|bici)\b", "Bici • Trek"),
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\bspecialized\b|\bspecialized\b.*\b(?:bike|mtb|bici)\b", "Bici • Specialized"),
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\bcannondale\b|\bcannondale\b.*\b(?:bike|mtb|bici)\b", "Bici • Cannondale"),
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\bscott\b|\bscott\b.*\b(?:bike|mtb|bici)\b", "Bici • Scott"),
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\bcube\b|\bcube\b.*\b(?:bike|mtb|bici)\b", "Bici • Cube"),
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\bbianchi\b|\bbianchi\b.*\b(?:bike|mtb|bici)\b", "Bici • Bianchi"),
+            (r"\b(?:bici|bicicletta|bike|mtb)\b.*\borbea\b|\borbea\b.*\b(?:bike|mtb|bici)\b", "Bici • Orbea"),
+            (r"\b(?:ebike|e bike|e-bike|bici elettrica|bicicletta elettrica)\b", "E-bike"),
+            (r"\bmountain\s*bike\b|\bmtb\b", "Bici • MTB"),
+            (r"\bbici\s+da\s+corsa\b|\broad\s+bike\b", "Bici • Corsa"),
+            (r"\bgravel\b", "Bici • Gravel"),
+            (r"\bbmx\b", "Bici • BMX"),
+
+            # Componenti bici
+            (r"\bshimano\b.*\b(?:ultegra|dura\s*ace|105|deore|xt|xtr)\b", "Componenti bici • Shimano"),
+            (r"\bsram\b.*\b(?:red|force|rival|gx|xx1|axs)\b", "Componenti bici • SRAM"),
+            (r"\bcampagnolo\b", "Componenti bici • Campagnolo"),
+            (r"\bruote?\b.*\b(?:carbonio|carbon)\b", "Componenti bici • Ruote carbonio"),
+            (r"\bgruppo\b.*\b(?:shimano|sram|campagnolo)\b", "Componenti bici • Gruppo"),
+
+            # Padel / tennis
+            (r"\bpadel\b.*\bbabolat\b|\bbabolat\b.*\bpadel\b", "Padel • Babolat"),
+            (r"\bpadel\b.*\bhead\b|\bhead\b.*\bpadel\b", "Padel • Head"),
+            (r"\bpadel\b.*\bwilson\b|\bwilson\b.*\bpadel\b", "Padel • Wilson"),
+            (r"\bpadel\b.*\badidas\b|\badidas\b.*\bpadel\b", "Padel • Adidas"),
+            (r"\bpadel\b.*\bnox\b|\bnox\b.*\bpadel\b", "Padel • Nox"),
+            (r"\bpadel\b.*\bbullpadel\b|\bbullpadel\b", "Padel • Bullpadel"),
+            (r"\bracchetta\b.*\bpadel\b|\bpala\s+padel\b", "Padel • Racchette"),
+            (r"\bracchetta\b.*\btennis\b|\btennis\b.*\bracchetta\b", "Tennis • Racchette"),
+
+            # Golf
+            (r"\btaylormade\b", "Golf • TaylorMade"),
+            (r"\bcallaway\b", "Golf • Callaway"),
+            (r"\btitleist\b", "Golf • Titleist"),
+            (r"\bping\b.*\b(?:driver|golf|iron|putter)\b", "Golf • Ping"),
+            (r"\bgolf\b.*\bmazze\b|\bset\s+golf\b|\bdriver\s+golf\b", "Golf"),
+
+            # Sci / snowboard
+            (r"\bsci\b.*\bsalomon\b|\bsalomon\b.*\bsci\b", "Sci • Salomon"),
+            (r"\bsci\b.*\brossignol\b|\brossignol\b.*\bsci\b", "Sci • Rossignol"),
+            (r"\bsci\b.*\batomic\b|\batomic\b.*\bsci\b", "Sci • Atomic"),
+            (r"\bsci\b.*\bhead\b|\bhead\b.*\bsci\b", "Sci • Head"),
+            (r"\bsnowboard\b.*\bburton\b|\bburton\b.*\bsnowboard\b", "Snowboard • Burton"),
+            (r"\bsnowboard\b", "Snowboard"),
+            (r"\bsci\b", "Sci"),
+
+            # Fitness / palestra
+            (r"\btapis\s*roulant\b|\btreadmill\b", "Fitness • Tapis roulant"),
+            (r"\bcyclette\b|\bspin\s*bike\b|\bspinning\b", "Fitness • Cyclette / Spin bike"),
+            (r"\bellittica\b", "Fitness • Ellittica"),
+            (r"\bpanca\b.*\bpalestra\b|\bpanca\s+multifunzione\b", "Fitness • Panche"),
+            (r"\bmanubri\b|\bbilanciere\b|\bdischi\s+pesi\b", "Fitness • Pesi"),
+            (r"\btechnogym\b", "Fitness • Technogym"),
+
+            # Running / outdoor GPS
+            (r"\bgarmin\s+forerunner\s*\d+\b", "Running • Garmin Forerunner"),
+            (r"\bgarmin\s+fenix\s*\d+\b", "Outdoor • Garmin Fenix"),
+            (r"\bgarmin\s+edge\s*\d+\b", "Ciclismo • Garmin Edge"),
+            (r"\bsuunto\b", "Outdoor • Suunto"),
+            (r"\bpolar\b.*\b(?:vantage|pacer|grit)\b", "Running • Polar"),
+
+            # Calcio
+            (r"\bscarpe\s+calcio\b|\bscarpini\b", "Calcio • Scarpe"),
+            (r"\bmaglia\s+calcio\b|\bmaglietta\s+calcio\b", "Calcio • Maglie"),
+            (r"\bpallone\s+calcio\b", "Calcio • Palloni"),
+
+            # Pesca
+            (r"\bcanna\s+da\s+pesca\b|\bmulinello\b|\bpesca\b.*\bshimano\b", "Pesca"),
+            (r"\bgarmin\b.*\b(?:fishfinder|striker)\b|\blowrance\b", "Pesca • Ecoscandagli"),
+
+            # Sub / diving
+            (r"\berogatore\b|\bcomputer\s+sub\b|\bmuta\s+sub\b|\bsubacquea\b", "Subacquea"),
+            (r"\bsuunto\b.*\b(?:d5|d4|eon)\b", "Subacquea • Suunto"),
+        ]
+
+        for pattern, label in sport_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Macro-famiglie residuali ma ancora utili.
+        if re.search(r"\bbici\b|\bbicicletta\b|\bbike\b", text):
+            return "Bici • Altro"
+        if re.search(r"\bpadel\b", text):
+            return "Padel • Altro"
+        if re.search(r"\btennis\b", text):
+            return "Tennis • Altro"
+        if re.search(r"\bgolf\b", text):
+            return "Golf • Altro"
+        if re.search(r"\bpalestra\b|\bfitness\b", text):
+            return "Fitness • Altro"
+        if re.search(r"\bpesca\b", text):
+            return "Pesca • Altro"
+
     pc_patterns = [
         (r"\blenovo\s+thinkpad\b", "Lenovo ThinkPad"),
         (r"\blenovo\s+ideapad\b", "Lenovo IdeaPad"),
