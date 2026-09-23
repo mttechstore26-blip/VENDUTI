@@ -141,6 +141,8 @@ def normalize_text(value):
         .replace("zhyun", "zhiyun")
         .replace("mimi mavic", "mini mavic")
         .replace("go pro", "gopro")
+        .replace("mac book", "macbook")
+        .replace("compiuter", "computer")
         .replace("insta 360", "insta360")
         .replace("metà", "meta")
     )
@@ -845,6 +847,17 @@ def detect_family(title, category=None):
                 label += f" {variant.upper()}"
             return label
 
+        nvidia_bare = re.search(
+            r"\bnvidia\s+(\d{4})(?:\s*(ti|super))?\b",
+            text,
+        )
+        if nvidia_bare:
+            model, variant = nvidia_bare.groups()
+            label = f"NVIDIA RTX {model}"
+            if variant:
+                label += f" {variant.upper()}"
+            return label
+
         # GPU AMD Radeon RX
         gpu_amd = re.search(
             r"\b(?:amd\s+|radeon\s+)?rx\s*(\d{3,4})(?:\s*(xt|gre|xtx))?\b",
@@ -869,6 +882,19 @@ def detect_family(title, category=None):
                 label += f" {suffix.upper()}"
             return label
 
+        amd_bare_cpu = re.search(
+            r"\bamd\s+(\d{4})(x3d|x|g)?\b",
+            text,
+        )
+        if amd_bare_cpu:
+            model, suffix = amd_bare_cpu.groups()
+            tier = model[0]
+            if tier in {"3", "5", "7", "9"}:
+                label = f"AMD Ryzen {tier} {model}"
+                if suffix:
+                    label += f" {suffix.upper()}"
+                return label
+
         # CPU Intel Core / Core Ultra
         core_ultra = re.search(
             r"\bcore\s+ultra\s*([579])\s*(\d{3}[a-z]?)\b",
@@ -879,7 +905,7 @@ def detect_family(title, category=None):
             return f"Intel Core Ultra {tier} {model.upper()}"
 
         intel = re.search(
-            r"\b(?:intel\s+)?(?:core\s+)?i([3579])[-\s]?(\d{4,5})([a-z]{0,2})\b",
+            r"\b(?:intel\s+)?(?:core\s+)?i?([3579])[-\s]?(\d{4,5})([a-z]{0,2})\b",
             text,
         )
         if intel:
@@ -914,6 +940,170 @@ def detect_family(title, category=None):
 
         if re.search(r"\bnas\b", text):
             return "NAS"
+
+        # E-reader / e-paper
+        ereader_patterns = [
+            (r"\bremarkable\s*2\b", "reMarkable 2"),
+            (r"\bkobo\s+clara\b", "Kobo Clara"),
+            (r"\bkobo\s+forma\b", "Kobo Forma"),
+            (r"\bkobo\b", "Kobo"),
+            (r"\bpocketbook\s+inkpad\s*4\b", "PocketBook InkPad 4"),
+            (r"\bpocketbook\s+era\b", "PocketBook Era"),
+            (r"\bbigme\s+b7\b", "Bigme B7"),
+            (r"\bviwoods\b", "Viwoods AI Paper"),
+        ]
+        for pattern, label in ereader_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Tablet / 2-in-1
+        tablet_patterns = [
+            (r"\bxiaomi\s+pad\s*7\b|\bxiami\s+pad\s*7\b", "Xiaomi Pad 7"),
+            (r"\bteclast\s+artpad\s+pro\b", "Teclast ArtPad Pro"),
+            (r"\bsurface\s+duo\b", "Microsoft Surface Duo"),
+        ]
+        for pattern, label in tablet_patterns:
+            if re.search(pattern, text):
+                return label
+        if re.search(r"\btablet\b", text):
+            return "Tablet"
+
+        # Raspberry / SBC
+        if re.search(r"\braspberry\s*pi\s*5\b", text):
+            return "Raspberry Pi 5"
+        if re.search(r"\braspberry\s*pi\b", text):
+            return "Raspberry Pi"
+
+        # VR / smart glasses
+        if re.search(r"\bpico\s*4\b", text):
+            return "Pico 4"
+        if re.search(r"\bdji\s+goggles\s+integra\b", text):
+            return "DJI Goggles Integra"
+
+        # Tastiere / controller / creator peripherals
+        if re.search(r"\bwooting\b", text):
+            return "Wooting"
+        if re.search(r"\bhotas\s+warthog\b|\bthrustmaster\b.*\bwarthog\b", text):
+            return "Thrustmaster HOTAS Warthog"
+        if re.search(r"\belgato\s+stream\s+deck\b", text):
+            return "Elgato Stream Deck"
+        if re.search(r"\btourbox\s+elite\b", text):
+            return "TourBox Elite"
+        if re.search(r"\bxppen\b|\bxp\s*pen\b", text):
+            return "XP-Pen"
+        if re.search(r"\bmouse\b", text):
+            return "Mouse"
+
+        # Smart home / sicurezza / videocitofonia
+        security_patterns = [
+            (r"\bhikvision\b.*\bnvr\b|\bnvr\b.*\bhikvision\b", "Hikvision NVR"),
+            (r"\bhikvision\b", "Hikvision"),
+            (r"\bezviz\s+cp4\b", "EZVIZ CP4"),
+            (r"\bnetatmo\s+presence\b", "Netatmo Presence"),
+            (r"\bajax\s+hub\s*2\s+plus\b", "Ajax Hub 2 Plus"),
+            (r"\btado\b", "Tado"),
+            (r"\bbticino\b.*\b300x\b", "BTicino Classe 300X"),
+        ]
+        for pattern, label in security_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Power station / UPS / inverter
+        power_patterns = [
+            (r"\bbluetti\s+elite\s*30\s*v2\b", "Bluetti Elite 30 V2"),
+            (r"\bpower\s+station\b", "Power Station"),
+            (r"\bapc\s+smart[\-\s]?ups\b", "APC Smart-UPS"),
+            (r"\beats?on\s+9130\b", "Eaton 9130"),
+            (r"\bups\b", "UPS"),
+            (r"\bsolaredge\b.*\bse2200h\b", "SolarEdge SE2200H"),
+            (r"\binverter\b", "Inverter"),
+        ]
+        for pattern, label in power_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Networking enterprise / Starlink / Cisco / Fortinet
+        enterprise_network_patterns = [
+            (r"\bcisco\s+c1113[\-\s]?8pltew\b", "Cisco C1113-8PLTEW"),
+            (r"\bfortiap\s+431f\b", "FortiAP 431F"),
+            (r"\btp\s*link\s+ne211\b|\btplink\s+ne211\b", "TP-Link NE211"),
+            (r"\bstarlink\b", "Starlink"),
+        ]
+        for pattern, label in enterprise_network_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # GPS / wearable Garmin / Oura
+        wearable_patterns = [
+            (r"\boura\s+ring\s*5\b", "Oura Ring 5"),
+            (r"\bgarmin\s+inreach\s+messenger\b", "Garmin inReach Messenger"),
+            (r"\bgarmin\s+gpsmap\s+66s\b", "Garmin GPSMAP 66s"),
+            (r"\bgarmin\s+vivoactive\s*6\b", "Garmin Vivoactive 6"),
+        ]
+        for pattern, label in wearable_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Storage HDD / enterprise
+        if re.search(r"\bseagate\s+exos\b", text):
+            return "Seagate Exos"
+
+        # Cooling / custom loop
+        if re.search(r"\bnzxt\s+kraken\s+elite\s*360\b", text):
+            return "NZXT Kraken Elite 360"
+        if re.search(r"\bek\b.*\bradiator|\bradiatori\s+ek\b", text):
+            return "EK Water Cooling"
+        if re.search(r"\bdissipatore\b|\bwatercooling\b|\bwater\s+cooling\b", text):
+            return "Cooling PC"
+
+        # PSU specifici
+        if re.search(r"\bcorsair\s+hx1500i\b", text):
+            return "Corsair HX1500i"
+
+        # Stampanti 3D / CNC / maker
+        maker_patterns = [
+            (r"\bcricut\s+explore\s*4\b", "Cricut Explore 4"),
+            (r"\bcricut\s+maker\s*4\b", "Cricut Maker 4"),
+            (r"\bcreality\s+k1c\b|\bk1c\b", "Creality K1C"),
+            (r"\bbambu\b.*\bpla\b|\bpla\s+bambu\b", "Bambu Lab Filamento"),
+            (r"\bcnc\s+3018\b", "CNC 3018"),
+            (r"\bxtool\b", "xTool"),
+            (r"\bduet\s+3d\b", "Duet 3D"),
+        ]
+        for pattern, label in maker_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Retro computing
+        retro_patterns = [
+            (r"\bcommodore\s+amiga\s*600\b", "Commodore Amiga 600"),
+            (r"\bolivetti\s+envision\s*400\b", "Olivetti Envision 400"),
+            (r"\bwindows\s*95\b", "PC Vintage Windows 95"),
+            (r"\bmsx\b", "MSX"),
+        ]
+        for pattern, label in retro_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Industriale / automazione
+        industrial_patterns = [
+            (r"\bsiemens\s+et200\b|\bet200\s+siemens\b", "Siemens ET200"),
+            (r"\bsiemens\s+6es7155", "Siemens ET200"),
+            (r"\bdigitax\s+st\s+dst\s*1405\b", "Digitax ST DST 1405"),
+            (r"\bsiglent\s+sdg1032x\b", "Siglent SDG1032X"),
+            (r"\bpinza\s+amperometrica\b", "Strumenti di misura"),
+        ]
+        for pattern, label in industrial_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Utility tech specifiche
+        if re.search(r"\bflipper\s+zero\b", text):
+            return "Flipper Zero"
+        if re.search(r"\bplaud\s+note\s+pro\b", text):
+            return "Plaud Note Pro"
+        if re.search(r"\bcorsair\s+xeneon\s+edge\b", text):
+            return "Corsair Xeneon Edge"
 
         # SSD / NVMe
         if re.search(r"\bnvme\b|\bssd\b", text):
