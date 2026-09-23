@@ -512,12 +512,33 @@ def detect_family(title, category=None):
     # Collezionismo: famiglie utili per il sourcing.
     # Vini/champagne restano volutamente in "Altro / non riconosciuto".
     if "collezionismo" in category_text:
-        # LEGO: se c'è il numero set, usa quello; altrimenti famiglia LEGO.
-        lego_set = re.search(r"\blego\b.*?\b(\d{4,6})\b", text)
-        if lego_set:
-            return f"LEGO {lego_set.group(1)}"
+        # LEGO: sottofamiglie utili al sourcing.
         if re.search(r"\blego\b", text):
-            return "LEGO"
+            lego_set = re.search(r"\blego\b.*?\b(\d{4,6})\b", text)
+
+            if re.search(r"\btechnic\b", text):
+                return "LEGO • Technic"
+            if re.search(r"\bone\s*piece\b|\bonepiece\b", text):
+                return "LEGO • One Piece"
+            if re.search(r"\bharry\s+potter\b|\bhogwarts\b|\bgringotts\b", text):
+                return "LEGO • Harry Potter"
+            if re.search(r"\bmarvel\b|\bavengers\b|\bsanctum\s+sanctorum\b", text):
+                return "LEGO • Marvel"
+            if re.search(r"\bstar\s+wars\b|\byoda\b|\blightsaber\b", text):
+                return "LEGO • Star Wars"
+            if re.search(r"\bcastle\b|\bcastello\b|\bpirati\b|\bbarracuda\b|\bgaleone\b", text):
+                return "LEGO • Castle / Pirati"
+            if re.search(r"\bf1\b|\bferrari\b|\bmercedes\b|\baston\s+martin\b|\bauto\b", text):
+                return "LEGO • Auto / F1"
+            if re.search(r"\bminifig", text):
+                return "LEGO • Minifigures"
+            if re.search(r"\bvintage\b|\bspazio\b", text):
+                return "LEGO • Vintage"
+
+            if lego_set:
+                return f"LEGO • Set {lego_set.group(1)}"
+
+            return "LEGO • Altro"
 
         # Pokémon / TCG: sottofamiglie utili al sourcing.
         pokemon_match = re.search(
@@ -614,15 +635,63 @@ def detect_family(title, category=None):
         ):
             return "Modellini auto"
 
-        # Auto/mezzi RC e radiocomandati.
+        # Auto/mezzi RC: prima brand/modello, poi tipologia.
         if re.search(
             r"\bradiocomand|\bauto\s+rc\b|\bbuggy\b|\bcrawler\b|"
             r"\bkyosho\b|\bhpi\b|\bxray\b|\baxial\b|\btamiya\b|"
             r"\btamya\b|\bteam\s+associated\b|\bnovarossi\b|\bpicco\b|"
-            r"\bradiomaster\b",
+            r"\bradiomaster\b|\bmaverick\b|\bmjx\b|\bmini\s*z\b|\bminiz\b",
             text,
         ):
-            return "RC / Radiocomandati"
+            # Brand + modello quando chiaramente riconoscibile.
+            if re.search(r"\baxial\b.*\bscx\s*10\b", text):
+                return "RC • Axial SCX10"
+            if re.search(r"\baxial\b.*\bscx\s*30\b", text):
+                return "RC • Axial SCX30"
+            if re.search(r"\bhpi\b.*\bsavage\s+xs\s+flux\b", text):
+                return "RC • HPI Savage XS Flux"
+            if re.search(r"\bhpi\b.*\bventure\b", text):
+                return "RC • HPI Venture"
+            if re.search(r"\bxray\b.*\bx4\b", text):
+                return "RC • XRAY X4"
+            if re.search(r"\bxray\b.*\bx1\b", text):
+                return "RC • XRAY X1"
+            if re.search(r"\bteam\s+associated\b.*\brc10b7\b", text):
+                return "RC • Team Associated RC10B7"
+            if re.search(r"\bkyosho\b.*\bmad\s+force\b", text):
+                return "RC • Kyosho Mad Force"
+            if re.search(r"\bkyosho\b.*\bmini\s*z\b|\bkyosho\b.*\bminiz\b", text):
+                return "RC • Kyosho Mini-Z"
+            if re.search(r"\bmaverick\b.*\bquantum\s+mt\s+flux\b", text):
+                return "RC • Maverick Quantum MT Flux"
+            if re.search(r"\btamiya\b.*\btrf\s*422\b|\btamya\b.*\btrf\s*422\b", text):
+                return "RC • Tamiya TRF 422"
+            if re.search(r"\bradiomaster\b.*\btx16s\b", text):
+                return "RC • Radiomaster TX16S"
+            if re.search(r"\bnovarossi\b.*\btplus\b", text):
+                return "RC • Novarossi Tplus"
+            if re.search(r"\bnovarossi\b.*\brally\b", text):
+                return "RC • Novarossi Rally"
+            if re.search(r"\bpicco\b.*\bp3tt\b", text):
+                return "RC • Picco P3TT"
+
+            # Tipologia quando manca un modello preciso.
+            if re.search(r"\bcrawler\b|\bscaler\b", text):
+                return "RC • Crawler / Scaler"
+            if re.search(r"\bbuggy\b", text):
+                return "RC • Buggy"
+            if re.search(r"\bmonster\s+truck\b|\bmt\b", text):
+                return "RC • Monster Truck"
+            if re.search(r"\bmini\s*4wd\b|\b1\s*[:/]\s*76\b", text):
+                return "RC • Mini"
+            if re.search(r"\bbrushless\b", text):
+                return "RC • Brushless"
+            if re.search(r"\bscoppio\b|\bnitro\b", text):
+                return "RC • Nitro / Scoppio"
+            if re.search(r"\bradiomaster\b|\btrasmettitor|\bradio\s+comando\b|\bradiocomando\b", text):
+                return "RC • Radio / Trasmettitori"
+
+            return "RC • Altro"
 
         # Modellismo ferroviario.
         if re.search(
@@ -1346,46 +1415,61 @@ family_stats["Prezzo"] = family_stats["Prezzo_mediano"].apply(format_price)
 family_stats["Tempo vendita"] = family_stats["Tempo_mediano_ore"].apply(format_speed)
 family_stats["Trend 30 gg"] = family_stats["Trend_volume_%"].apply(format_delta)
 
-# Vista aggregata Pokémon TCG oltre alle sottofamiglie.
+# Viste aggregate oltre alle sottofamiglie.
 if selected_category and "collezionismo" in normalize_text(selected_category):
-    pokemon_prefix = "Pokémon • "
-    pokemon_current = detail[
-        detail["Famiglia"].astype(str).str.startswith(pokemon_prefix)
-    ].copy()
-    pokemon_previous = detail_prev[
-        detail_prev["Famiglia"].astype(str).str.startswith(pokemon_prefix)
-    ].copy()
 
-    if not pokemon_current.empty:
-        pokemon_venduti = len(pokemon_current)
-        pokemon_venduti_prec = len(pokemon_previous)
-        pokemon_trend = (
-            ((pokemon_venduti - pokemon_venduti_prec) / pokemon_venduti_prec) * 100
-            if pokemon_venduti_prec > 0
+    def add_aggregate_family(base_name, prefix):
+        nonlocal_family_stats = None
+        subset_current = detail[
+            detail["Famiglia"].astype(str).str.startswith(prefix)
+        ].copy()
+        subset_previous = detail_prev[
+            detail_prev["Famiglia"].astype(str).str.startswith(prefix)
+        ].copy()
+
+        if subset_current.empty:
+            return None
+
+        venduti = len(subset_current)
+        venduti_prec = len(subset_previous)
+        trend = (
+            ((venduti - venduti_prec) / venduti_prec) * 100
+            if venduti_prec > 0
             else pd.NA
         )
 
-        pokemon_row = pd.DataFrame(
+        return pd.DataFrame(
             [{
-                "Famiglia": "Pokémon TCG",
-                "Venduti": pokemon_venduti,
-                "Prezzo_mediano": pokemon_current["price"].median(),
-                "Tempo_mediano_ore": pokemon_current["sale_time_hours"].median(),
-                "Venduti_prec": pokemon_venduti_prec,
+                "Famiglia": base_name,
+                "Venduti": venduti,
+                "Prezzo_mediano": subset_current["price"].median(),
+                "Tempo_mediano_ore": subset_current["sale_time_hours"].median(),
+                "Venduti_prec": venduti_prec,
                 "Prezzo_mediano_prec": (
-                    pokemon_previous["price"].median()
-                    if not pokemon_previous.empty
+                    subset_previous["price"].median()
+                    if not subset_previous.empty
                     else pd.NA
                 ),
-                "Trend_volume_%": pokemon_trend,
-                "Prezzo": format_price(pokemon_current["price"].median()),
-                "Tempo vendita": format_speed(pokemon_current["sale_time_hours"].median()),
-                "Trend 30 gg": format_delta(pokemon_trend),
+                "Trend_volume_%": trend,
+                "Prezzo": format_price(subset_current["price"].median()),
+                "Tempo vendita": format_speed(subset_current["sale_time_hours"].median()),
+                "Trend 30 gg": format_delta(trend),
             }]
         )
 
+    aggregate_rows = []
+    for base_name, prefix in [
+        ("Pokémon TCG", "Pokémon • "),
+        ("LEGO", "LEGO • "),
+        ("RC / Radiocomandati", "RC • "),
+    ]:
+        aggregate_row = add_aggregate_family(base_name, prefix)
+        if aggregate_row is not None:
+            aggregate_rows.append(aggregate_row)
+
+    if aggregate_rows:
         family_stats = pd.concat(
-            [pokemon_row, family_stats],
+            aggregate_rows + [family_stats],
             ignore_index=True,
         )
 
@@ -1425,9 +1509,17 @@ if selected_rows:
 
     st.caption(f"📌 Selezionato: **{selected_family}**")
 
-    if selected_family == "Pokémon TCG":
+    aggregate_prefixes = {
+        "Pokémon TCG": "Pokémon • ",
+        "LEGO": "LEGO • ",
+        "RC / Radiocomandati": "RC • ",
+    }
+
+    if selected_family in aggregate_prefixes:
         selected_family_data = detail[
-            detail["Famiglia"].astype(str).str.startswith("Pokémon • ")
+            detail["Famiglia"].astype(str).str.startswith(
+                aggregate_prefixes[selected_family]
+            )
         ].copy()
     else:
         selected_family_data = detail[
@@ -1558,10 +1650,12 @@ if selected_rows:
 
     # Il grafico deve usare tutto lo storico disponibile della famiglia,
     # non il dataset "detail" già limitato agli ultimi 30 giorni.
-    if selected_family == "Pokémon TCG":
+    if selected_family in aggregate_prefixes:
         historical_family_data = df[
             (df["category"] == selected_category)
-            & df["Famiglia"].astype(str).str.startswith("Pokémon • ")
+            & df["Famiglia"].astype(str).str.startswith(
+                aggregate_prefixes[selected_family]
+            )
         ].copy()
     else:
         historical_family_data = df[
