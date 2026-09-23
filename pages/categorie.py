@@ -146,6 +146,7 @@ def normalize_text(value):
         .replace("insta 360", "insta360")
         .replace("metà", "meta")
         .replace("iohone", "iphone")
+        .replace("iphonee", "iphone")
         .replace("iphon", "iphone")
         .replace("i phone", "iphone")
         .replace("readmi", "redmi")
@@ -160,17 +161,47 @@ def detect_family(title, category=None):
     text = normalize_text(title)
     category_text = normalize_text(category or "")
 
-    for generation in ["17", "16", "15", "14", "13", "12", "11"]:
-        if re.search(rf"\biphone\s*{generation}\s*pro\s*max\b", text):
-            return f"iPhone {generation} Pro Max"
-        if re.search(rf"\biphone\s*{generation}\s*pro\b", text):
-            return f"iPhone {generation} Pro"
-        if re.search(rf"\biphone\s*{generation}\s*plus\b", text):
-            return f"iPhone {generation} Plus"
-        if re.search(rf"\biphone\s*{generation}\s*mini\b", text):
-            return f"iPhone {generation} mini"
-        if re.search(rf"\biphone\s*{generation}\b", text):
+    # iPhone: parser robusto che ignora memoria, colore e formattazioni del titolo.
+    # Gestisce anche forme come iphone13, iphone 11pro, iphone 14promax, 16e, X/XS e SE.
+    if re.search(r"\biphone", text):
+        # Modelli speciali.
+        if re.search(r"\biphone\s*se\s*(?:3|3a|3rd)?\b", text):
+            return "iPhone SE 3"
+        if re.search(r"\biphone\s*xs\b", text):
+            return "iPhone XS"
+        if re.search(r"\biphone\s*x\b", text):
+            return "iPhone X"
+        if re.search(r"\biphone\s*2g\b", text):
+            return "iPhone 2G"
+        if re.search(r"\biphone\s*16e\b", text):
+            return "iPhone 16e"
+
+        # Generazioni moderne, anche senza spazio: iphone13, iphone12pro, 14promax...
+        iphone_modern = re.search(
+            r"\biphone\s*(11|12|13|14|15|16|17)"
+            r"\s*(pro\s*max|promax|pro|max|plus)?\b",
+            text,
+        )
+        if iphone_modern:
+            generation, variant = iphone_modern.groups()
+            if variant:
+                variant = variant.replace("promax", "pro max")
+                if variant == "max":
+                    variant = "Pro Max"
+                elif variant == "pro max":
+                    variant = "Pro Max"
+                else:
+                    variant = variant.title()
+                return f"iPhone {generation} {variant}"
             return f"iPhone {generation}"
+
+        # Modelli precedenti.
+        legacy = re.search(r"\biphone\s*(8|7|6)\b", text)
+        if legacy:
+            return f"iPhone {legacy.group(1)}"
+
+        # Titolo iPhone senza modello identificabile.
+        return "iPhone • Modello non identificato"
 
     if re.search(r"\b(?:ps|playstation)\s*portal\b", text):
         return "PlayStation Portal"
@@ -339,20 +370,6 @@ def detect_family(title, category=None):
             return "Accessori telefonia"
 
     if "telefonia" in category_text:
-        # iPhone non coperti dal parser principale: SE, X/XS, 16e, typo normalizzati.
-        if re.search(r"\biphone\s+se\s*(?:3|3a|3rd)?\b", text):
-            return "iPhone SE 3"
-        if re.search(r"\biphone\s+xs\b", text):
-            return "iPhone XS"
-        if re.search(r"\biphone\s+x\b", text):
-            return "iPhone X"
-        if re.search(r"\biphone\s+16e\b", text):
-            return "iPhone 16e"
-        if re.search(r"\biphone\s+2g\b", text):
-            return "iPhone 2G"
-        if re.search(r"\biphone\s+8\b", text):
-            return "iPhone 8"
-
         # Samsung scritti senza Galaxy.
         samsung_short = re.search(
             r"\b(?:samsung\s+)?s\s*(2[0-9])(?:\s*(ultra|plus|fe))?\b",
