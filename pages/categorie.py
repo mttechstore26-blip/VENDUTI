@@ -794,9 +794,26 @@ def detect_family(title, category=None):
 
             return "LEGO • Altro"
 
+        # Pokémon 30° anniversario: alcuni annunci non scrivono "Pokemon"
+        # oppure usano "Pokémon" con accento. ETB + 30° / Primi Compagni
+        # sono comunque riconoscibili in modo affidabile nella categoria Collezionismo.
+        if (
+            re.search(
+                r"\b30\s*(?:th|o|°)?\s*annivers|\b30\s*esimo\b|"
+                r"\btrentesimo\b|\bprimi\s+compagni\b",
+                text,
+            )
+            and re.search(
+                r"\betb\b|\bpokemon\b|\bpokémon\b|\bprimi\s+compagni\b|"
+                r"\bpikachu\b|\bmew\b|\blugia\b|\bcharizard\b",
+                text,
+            )
+        ):
+            return "Pokémon • 30° Anniversario"
+
         # Pokémon / TCG: sottofamiglie utili al sourcing.
         pokemon_match = re.search(
-            r"\bpokemon\b|\bpoke\b|\bcharizard\b|\bblastoise\b|"
+            r"\bpokemon\b|\bpokémon\b|\bpoke\b|\bcharizard\b|\bblastoise\b|"
             r"\bmew\b|\bmewtwo\b|\blugia\b|\braichu\b|\bcelebi\b|"
             r"\bvictini\b|\bmoltres\b|\bespeon\b|\bbulbasaur\b|"
             r"\bsquirt|\bdragonite\b|\bdarkrai\b|\bzoroark\b",
@@ -2423,7 +2440,6 @@ def aggregate(group):
     )
 
 
-@st.cache_data(ttl=60, show_spinner=False)
 @st.cache_data(ttl=60, show_spinner=False)
 def prepare_data():
     """Carica e prepara i dati una sola volta per ciclo cache.
