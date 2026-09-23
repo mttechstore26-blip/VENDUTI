@@ -1534,6 +1534,56 @@ def detect_family(title, category=None):
         if re.search(r"\bcase\s+pc\b|\bcabinet\s+pc\b", text):
             return "Case PC"
 
+    # CONSOLE 400€+: classificazione dedicata ai prodotti ad alto ticket.
+    if "console 400" in category_text:
+        premium_console_patterns = [
+            # Handheld / console portatili
+            (r"\bmsi\s+claw\s*8\b", "Handheld • MSI Claw 8"),
+            (r"\bsteam\s+deck\s+oled\b", "Handheld • Steam Deck OLED"),
+            (r"\bgame\s*boy\s+advance\s+sp\b", "Nintendo • Game Boy Advance SP"),
+            (r"\bredmagic\s+astra\b", "Handheld • RedMagic Astra"),
+            (r"\bayn\s+odin\s*3\s+pro\b", "Handheld • AYN Odin 3 Pro"),
+            (r"\bayn\s+thor\s+pro\b", "Handheld • AYN Thor Pro"),
+            (r"\bodin\s*2\s+portal\s+max\b", "Handheld • AYN Odin 2 Portal Max"),
+
+            # VR
+            (r"\bpico\s*4\s+ultra\b", "VR • Pico 4 Ultra"),
+            (r"\boculus\s*3\b", "VR • Meta Quest 3"),
+            (r"\bpimax\s+crystal\s+light\b", "VR • Pimax Crystal Light"),
+
+            # Sim racing
+            (r"\bfanatec\s+csl\s+dd\s+pro\b", "Sim Racing • Fanatec CSL DD Pro"),
+            (r"\bfanatec\s+f1\b", "Sim Racing • Fanatec F1"),
+            (r"\bsimucube\s*2\s+pro\b", "Sim Racing • Simucube 2 Pro"),
+            (r"\bsimnet\s+sp\s+pro\b", "Sim Racing • SimNet SP Pro"),
+            (r"\bmoza\s+r5\b", "Sim Racing • Moza R5"),
+            (r"\bconspit\s+cpp\s+lite\b", "Sim Racing • Conspit CPP Lite"),
+            (r"\bsimagic\s+alpha\s+evo\s+sport\b", "Sim Racing • Simagic Alpha Evo Sport"),
+            (r"\bpedaliera\s+vrs\b|\bvrs\b.*\bpedaliera\b", "Sim Racing • VRS Pedals"),
+            (r"\bthrustmaster\s+t[\s-]*lcm\b", "Sim Racing • Thrustmaster T-LCM"),
+
+            # PlayStation / retro / lotti
+            (r"\baystation\s*5\b", "PlayStation 5"),
+            (r"\blotto\s+ps3\b.*\bpsp\b", "PlayStation • Lotto PS3 / PSP"),
+            (r"\bsega\s+master\s+system\b", "SEGA Master System"),
+            (r"\b3\s+console\b.*\bgiochi\b", "Console • Lotto"),
+            (r"\bconsole\s+nuova\b", "Console • Modello non identificato"),
+
+            # Periferiche / controller espliciti
+            (r"\bwolfmix\s+w1\b", "Controller • Wolfmix W1"),
+        ]
+
+        for pattern, label in premium_console_patterns:
+            if re.search(pattern, text):
+                return label
+
+        if re.search(r"\bfanatec\b|\bsimucube\b|\bsimagic\b|\bmoza\b|\bpedaliera\b", text):
+            return "Sim Racing • Altro"
+        if re.search(r"\bvr\b|\boculus\b|\bpimax\b|\bpico\b", text):
+            return "VR • Altro"
+        if re.search(r"\bsteam\s+deck\b|\bayn\b|\bodin\b|\bhandheld\b", text):
+            return "Handheld • Altro"
+
     # Sport: famiglie utili per il sourcing.
     if "sport" in category_text:
         sport_patterns = [
