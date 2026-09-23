@@ -145,6 +145,12 @@ def normalize_text(value):
         .replace("compiuter", "computer")
         .replace("insta 360", "insta360")
         .replace("metà", "meta")
+        .replace("iohone", "iphone")
+        .replace("iphon", "iphone")
+        .replace("i phone", "iphone")
+        .replace("readmi", "redmi")
+        .replace("hawei", "huawei")
+        .replace("asuz", "asus")
     )
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     return re.sub(r"\s+", " ", text).strip()
@@ -331,6 +337,102 @@ def detect_family(title, category=None):
 
         if re.search(r"\bcover\b|\bcustodia\b|\bpellicola\b|\bcaricatore\b|\bcharger\b", text):
             return "Accessori telefonia"
+
+    if "telefonia" in category_text:
+        # iPhone non coperti dal parser principale: SE, X/XS, 16e, typo normalizzati.
+        if re.search(r"\biphone\s+se\s*(?:3|3a|3rd)?\b", text):
+            return "iPhone SE 3"
+        if re.search(r"\biphone\s+xs\b", text):
+            return "iPhone XS"
+        if re.search(r"\biphone\s+x\b", text):
+            return "iPhone X"
+        if re.search(r"\biphone\s+16e\b", text):
+            return "iPhone 16e"
+        if re.search(r"\biphone\s+2g\b", text):
+            return "iPhone 2G"
+        if re.search(r"\biphone\s+8\b", text):
+            return "iPhone 8"
+
+        # Samsung scritti senza Galaxy.
+        samsung_short = re.search(
+            r"\b(?:samsung\s+)?s\s*(2[0-9])(?:\s*(ultra|plus|fe))?\b",
+            text,
+        )
+        if samsung_short:
+            model, variant = samsung_short.groups()
+            label = f"Samsung Galaxy S{model}"
+            if variant:
+                label += f" {variant.title() if variant != 'fe' else 'FE'}"
+            return label
+
+        if re.search(r"\bz\s*flip\s*4\b", text):
+            return "Samsung Galaxy Z Flip 4"
+        if re.search(r"\bgalaxy\s+xcover\s*7\b", text):
+            return "Samsung Galaxy XCover 7"
+
+        # Brand/modelli meno comuni presenti nei dati reali.
+        uncommon_phone_patterns = [
+            (r"\binfinix\s+note\s*50\s*pro\b", "Infinix Note 50 Pro"),
+            (r"\btcl\s+p80\s+pro\b", "TCL P80 Pro"),
+            (r"\btcl\s+70\s+pro\s+next\s*paper\b", "TCL 70 Pro NXTPAPER"),
+            (r"\bhotwav\s+t8\b", "Hotwav T8"),
+            (r"\bred\s+magic\s*6\s*pro\b", "RedMagic 6 Pro"),
+            (r"\bdoogee\s+v\s*max\s+plus\b", "Doogee V Max Plus"),
+            (r"\bsharp\s+aquos\s+r8\s+pro\b", "Sharp Aquos R8 Pro"),
+            (r"\bunihertz\s+jelly\s+star\b", "Unihertz Jelly Star"),
+            (r"\bblackview\s+xplore\s*1\b", "Blackview Xplore 1"),
+            (r"\bnubia\s+z60s\s+pro\b", "Nubia Z60S Pro"),
+            (r"\bnubia\s+air\b", "Nubia Air"),
+        ]
+        for pattern, label in uncommon_phone_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Redmi typo già normalizzato.
+        redmi_note = re.search(
+            r"\bredmi\s+note\s*(\d{1,2})(?:\s*(pro\+?|pro|s|5g))?\b",
+            text,
+        )
+        if redmi_note:
+            model, variant = redmi_note.groups()
+            label = f"Xiaomi Redmi Note {model}"
+            if variant:
+                label += f" {variant.upper() if variant == '5g' else variant.title()}"
+            return label
+
+        # Wearable / audio / smart glasses.
+        if re.search(r"\bairpods\s+pro\s*3\b", text):
+            return "AirPods Pro 3"
+        if re.search(r"\bamazfit\s+t[\s-]*rex\s*3\b|\bt[\s-]*rex\s*3\s+amazfit\b", text):
+            return "Amazfit T-Rex 3"
+        if re.search(r"\bhuawei\s+gt6\s+pro\b", text):
+            return "Huawei Watch GT 6 Pro"
+        if re.search(r"\bultra\s*3\b", text):
+            return "Apple Watch Ultra 3"
+        if re.search(r"\brayneo\s+air\s*4\s+pro\b", text):
+            return "RayNeo Air 4 Pro"
+        if re.search(r"\bvyda\b", text):
+            return "VYDA"
+
+        # Router / modem 5G che finiscono nella categoria Telefonia.
+        if re.search(r"\bnokia\s+fastmile\s*5g\b", text):
+            return "Nokia FastMile 5G"
+        if re.search(r"\bzte\s+mc889\b", text):
+            return "ZTE MC889 5G"
+
+        # Domotica / touchscreen presenti impropriamente in Telefonia.
+        if re.search(r"\bbticino\s+3488\b", text):
+            return "BTicino 3488"
+
+        # OnePlus scritto staccato senza modello.
+        if re.search(r"\bone\s+plus\b", text):
+            return "OnePlus • Modello non identificato"
+
+        # iPhone generici o lotti restano volutamente separati dal modello specifico.
+        if re.search(r"\bdue\s+iphone\b|\btelefoni\s+iphone\b", text):
+            return "iPhone • Lotto / Accessori"
+        if re.fullmatch(r"iphone", text):
+            return "iPhone • Modello non identificato"
 
     insta360 = re.search(
         r"\binsta\s*360\s+(go\s*\d+[a-z]?|x\s*\d+|ace\s*pro\s*\d*|one\s*[a-z0-9]+)(?:\s+\d{2,4}gb)?\b",
