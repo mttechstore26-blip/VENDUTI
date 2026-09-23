@@ -1617,6 +1617,204 @@ def detect_family(title, category=None):
             if re.search(pattern, text):
                 return label
 
+        # Secondo pass Sport basato sui titoli reali rimasti in "Altro".
+
+        # Padel / tennis: molti titoli indicano solo marca/modello, senza la parola padel.
+        racket_patterns = [
+            (r"\bnox\b", "Padel • Nox"),
+            (r"\bvarlion\b", "Padel • Varlion"),
+            (r"\boxdog\b", "Padel • Oxdog"),
+            (r"\bhirostar\b", "Padel • Hirostar"),
+            (r"\bdrop\s+shot\b", "Padel • Drop Shot"),
+            (r"\bjoma\b.*\b(?:blast|padel)\b", "Padel • Joma"),
+            (r"\btecnifibre\b", "Tennis / Padel • Tecnifibre"),
+            (r"\bprokennex\b", "Tennis • ProKennex"),
+            (r"\bbabolat\b.*\b(?:pure|drive|aero)\b", "Tennis • Babolat"),
+            (r"\bblade\b.*\b(?:racchetta|raqueta|bors|tennis)\b", "Tennis • Wilson Blade"),
+            (r"\bracchett[ae]\b|\braqueta\b", "Tennis / Padel • Racchette"),
+        ]
+        for pattern, label in racket_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Wingfoil / foil / SUP / surf / windsurf.
+        water_board_patterns = [
+            (r"\bsabfoil\b", "Wing/Foil • Sabfoil"),
+            (r"\bduotone\b.*\b(?:foil|wing|slick|whizz|bar)\b", "Wing/Foil • Duotone"),
+            (r"\bgong\b.*\b(?:foil|wing|tavola)\b|\b(?:foil|wing)\b.*\bgong\b", "Wing/Foil • Gong"),
+            (r"\bcabrinh[ai]\b", "Wing/Foil • Cabrinha"),
+            (r"\brrd\b.*\b(?:foil|wing|tavola|fusoliera|twintip)\b", "Wing/Foil • RRD"),
+            (r"\bnaish\b", "Wing/Foil • Naish"),
+            (r"\btakuma\b.*\bwingfoil\b", "Wing/Foil • Takuma"),
+            (r"\bf[\s-]?one\b.*\bwing\b", "Wing/Foil • F-One"),
+            (r"\barmstrong\b.*\bfoil\b", "Wing/Foil • Armstrong"),
+            (r"\bwing\s*foil\b|\bwingfoil\b|\bfoil\b", "Wing/Foil"),
+            (r"\bsup\b|\bstand\s+up\s+paddle\b|\bwindsup\b", "SUP"),
+            (r"\bwindsurf\b", "Windsurf"),
+            (r"\bsurfskate\b", "Surfskate"),
+            (r"\btavola\s+surf\b|\bsurf\b", "Surf"),
+            (r"\bwakeboard\b", "Wakeboard"),
+        ]
+        for pattern, label in water_board_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Subacquea / apnea.
+        diving_patterns = [
+            (r"\bmares\b.*\b(?:apnea|gav|xr|smart|sub)\b", "Sub • Mares"),
+            (r"\bcressi\b", "Sub • Cressi"),
+            (r"\bapeks\b|\bapex\s+atx\b", "Sub • Apeks"),
+            (r"\bcetma\b.*\bpinne\b|\bpinne\b.*\bcetma\b", "Sub • CETMA"),
+            (r"\balemanni\b.*\bpinne\b", "Sub • Alemanni"),
+            (r"\bgav\b|\bbcd\b", "Sub • GAV / BCD"),
+            (r"\bcomputer\b.*\b(?:sub|immersion|apnea)\b|\borologio\s+per\s+apnea\b", "Sub • Computer"),
+            (r"\barbalete\b", "Sub • Arbalete"),
+            (r"\bpinne\b", "Sub • Pinne"),
+            (r"\bbombola\s+sub\b|\bscooter\s+subacqueo\b|\bsubacque", "Subacquea"),
+        ]
+        for pattern, label in diving_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Pesca.
+        fishing_patterns = [
+            (r"\bdaiwa\b", "Pesca • Daiwa"),
+            (r"\bpenn\b.*\b(?:525|mulinello|mag)\b", "Pesca • Penn"),
+            (r"\babu\b.*\b(?:6500|cardinal)\b", "Pesca • Abu Garcia"),
+            (r"\bbelly\s*boat\b|\bbellyboat\b", "Pesca • Belly boat"),
+            (r"\bcarpfishing\b", "Pesca • Carpfishing"),
+            (r"\bcanne?\b.*\b(?:mosca|pesca)\b|\bmulinello\b|\bjig\b", "Pesca"),
+            (r"\bhook\s+reveal\b|\blowrance\b", "Pesca • Ecoscandaglio"),
+        ]
+        for pattern, label in fishing_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Arrampicata / alpinismo / ferrata.
+        climbing_patterns = [
+            (r"\bpetzl\b.*\b(?:quark|nomic|spirit|gri\s*gri)\b", "Arrampicata • Petzl"),
+            (r"\bpiccozz[ae]\b", "Alpinismo • Piccozze"),
+            (r"\bkit\s+ferrata\b|\bvie\s+ferrate\b", "Arrampicata • Ferrata"),
+            (r"\bcrashpad\b|\bboulder\b", "Arrampicata • Boulder"),
+            (r"\bfriend\b.*\barrampicata\b|\barrampicata\b.*\bfriend\b", "Arrampicata • Friends"),
+            (r"\brinvii\b|\bimbrago\b.*\barrampicata\b|\bcord[ae]\b.*\barrampicata\b", "Arrampicata • Attrezzatura"),
+            (r"\bscarpette\s+arrampicata\b|\battrezzatur[ae]\s+per\s+arrampicata\b", "Arrampicata"),
+            (r"\bortovox\b.*\bartva\b|\bartva\b", "Alpinismo • ARTVA"),
+            (r"\bbastoncini\s+leki\b", "Trekking • Bastoncini"),
+        ]
+        for pattern, label in climbing_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Fitness / riabilitazione / home gym.
+        fitness_real_patterns = [
+            (r"\bcompex\b", "Fitness • Compex"),
+            (r"\bmagnetoterapia\b|\bmag\s*2000\b", "Fitness • Magnetoterapia"),
+            (r"\belettrostimolatore\b|\btesmed\b", "Fitness • Elettrostimolatori"),
+            (r"\bvogatore\b", "Fitness • Vogatore"),
+            (r"\bhalf\s+rack\b|\brack\b.*\bpalestra\b", "Fitness • Rack"),
+            (r"\bpanca\b", "Fitness • Panche"),
+            (r"\bdischi\b.*\b(?:gym|pesi)\b", "Fitness • Pesi"),
+            (r"\bbellicon\b", "Fitness • Trampolino"),
+            (r"\bpoledance\b|\bpole\b.*\baerea\b", "Fitness • Pole / Aerea"),
+            (r"\bcrossfit\b", "Fitness • CrossFit"),
+            (r"\bwithings\s+bodyscan\b", "Fitness • Withings Body Scan"),
+        ]
+        for pattern, label in fitness_real_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Smartwatch / wearable sportivi.
+        wearable_sport_patterns = [
+            (r"\bamazfit\s+(?:active|activ|action)\s+max\b", "Sportwatch • Amazfit Active Max"),
+            (r"\bamazfit\s+t[\s-]*rex\s*3\b", "Sportwatch • Amazfit T-Rex 3"),
+            (r"\bhuawei\s+gt5\s+pro\b", "Sportwatch • Huawei GT5 Pro"),
+            (r"\bfitbit\b", "Sportwatch • Fitbit"),
+            (r"\bpolar\s+loop\b", "Sportwatch • Polar Loop"),
+            (r"\bwatch\s+ultra\b", "Sportwatch • Apple Watch Ultra"),
+            (r"\bshokz\s+open\s*run\b", "Running • Shokz OpenRun"),
+        ]
+        for pattern, label in wearable_sport_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Calcio / volley.
+        if re.search(r"\bmagli?[ae]\b.*\b(?:calcio|inter|juventus|lazio|parma|francia|mondiali)\b", text):
+            return "Calcio • Maglie"
+        if re.search(r"\bpallone\b.*\b(?:calcio|maradona|fifa|world\s+cup)\b", text):
+            return "Calcio • Palloni"
+        if re.search(r"\badidas\s+predator\b", text):
+            return "Calcio • Adidas Predator"
+        if re.search(r"\bset\s+calcio\b", text):
+            return "Calcio • Set"
+        if re.search(r"\bmikasa\b.*\bvolley\b|\bpallone\b.*\bvolley\b", text):
+            return "Volley"
+
+        # Camping / trekking.
+        camping_patterns = [
+            (r"\bquechua\b.*\b(?:air|tenda)\b", "Camping • Quechua"),
+            (r"\btenda\b.*\bdecathlon\b|\barpenaz\b", "Camping • Decathlon"),
+            (r"\btenda\b.*\bferrino\b", "Camping • Ferrino"),
+            (r"\btenda\b.*\bskandika\b", "Camping • Skandika"),
+            (r"\btenda\b.*\bvango\b", "Camping • Vango"),
+            (r"\btenda\b.*\bsimond\b", "Camping • Simond"),
+            (r"\bmaterassini?\b.*\bsea\s+to\s+summit\b", "Camping • Sea to Summit"),
+            (r"\bsacco\s+a\s+pelo\b", "Camping • Sacchi a pelo"),
+            (r"\btenda\b|\bcampeggio\b", "Camping • Tende"),
+        ]
+        for pattern, label in camping_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Metal detector.
+        metal_patterns = [
+            (r"\bnokta\b", "Metal detector • Nokta"),
+            (r"\bminelab\b|\bequinox\b", "Metal detector • Minelab"),
+            (r"\bxp\s+mi[\s-]*6\b|\bpin[t]?\s+pointer\b", "Metal detector • Pinpointer"),
+        ]
+        for pattern, label in metal_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Snowboard / pattinaggio / skate.
+        board_patterns = [
+            (r"\bnidecker\b", "Snowboard • Nidecker"),
+            (r"\bbataleon\b", "Snowboard • Bataleon"),
+            (r"\bburton\b", "Snowboard • Burton"),
+            (r"\bride\s+twin\s+pig\b", "Snowboard • Ride Twin Pig"),
+            (r"\bedea\b|\broll\s+line\b|\bpattinaggio\b", "Pattinaggio"),
+            (r"\bskateboard\b|\bskate\b", "Skateboard"),
+        ]
+        for pattern, label in board_patterns:
+            if re.search(pattern, text):
+                return label
+
+        # Parapendio.
+        if re.search(r"\bparapendio\b|\bparawing\b", text):
+            return "Parapendio"
+
+        # Kart / moto sport.
+        if re.search(r"\bkart\b|\bcrg\b.*\b100cc\b", text):
+            return "Kart"
+        if re.search(r"\balpinestars\b|\btuta\s+moto\b|\bberik\b", text):
+            return "Moto • Protezioni / Abbigliamento"
+
+        # Mobilità personale.
+        if re.search(r"\bsegway\b|\bninebot\b|\bmonopattino\b|\bmonoruota\b", text):
+            return "Mobilità personale"
+
+        # Tiro con arco (non include prodotti da ricarica/armi).
+        if re.search(r"\btiro\s+con\s+l\s+arco\b|\briser\b|\bflettenti\b|\barco\s+ricurvo\b", text):
+            return "Tiro con arco"
+
+        # Altre nicchie sportive riconoscibili.
+        if re.search(r"\bsella\b.*\b(?:zaldi|equitazione)\b|\bstaffe\s+safe\s+riding\b", text):
+            return "Equitazione"
+        if re.search(r"\bbocce\b", text):
+            return "Bocce"
+        if re.search(r"\bst[e]?cca\b.*\b(?:biliardo|effebi|gomez)\b", text):
+            return "Biliardo"
+
         # Macro-famiglie residuali ma ancora utili.
         if re.search(r"\bbici\b|\bbicicletta\b|\bbike\b", text):
             return "Bici • Altro"
