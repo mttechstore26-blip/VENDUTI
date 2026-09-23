@@ -218,9 +218,31 @@ def detect_family(title, category=None):
 
         return "iPad • Modello non identificato"
 
+    # MacBook Air: separa per chip quando possibile, altrimenti per anno.
+    if re.search(r"\bmacbook\s*air\b", text):
+        for chip in ["m4", "m3", "m2", "m1"]:
+            if re.search(rf"\b{chip}\b", text):
+                return f"MacBook Air {chip.upper()}"
+
+        year_match = re.search(
+            r"\bmacbook\s*air\b.*\b(2015|2016|2017|2018|2019|2020|2021|2022|2023|2024|2025|2026)\b",
+            text,
+        )
+        if year_match:
+            return f"MacBook Air {year_match.group(1)}"
+
+        # Alcuni titoli mettono l'anno prima o lontano dal nome prodotto.
+        any_year = re.search(
+            r"\b(2015|2016|2017|2018|2019|2020|2021|2022|2023|2024|2025|2026)\b",
+            text,
+        )
+        if any_year:
+            return f"MacBook Air {any_year.group(1)}"
+
+        return "MacBook Air • Modello non identificato"
+
     apple_patterns = [
         (r"\bmacbook\s*pro\b", "MacBook Pro"),
-        (r"\bmacbook\s*air\b", "MacBook Air"),
         (r"\bimac\b", "iMac"),
     ]
     for pattern, label in apple_patterns:
