@@ -1926,10 +1926,26 @@ if selected_rows:
             detail["Famiglia"] == selected_family
         ].copy()
 
+    # KPI famiglia: restano sugli ultimi 30 giorni.
     famiglia_venduti = len(selected_family_data)
     famiglia_prezzo_medio = selected_family_data["price"].mean()
     famiglia_prezzo_mediano = selected_family_data["price"].median()
     famiglia_tempo_mediano = selected_family_data["sale_time_hours"].median()
+
+    # Lista annunci: usa tutto lo storico disponibile (max 90 giorni),
+    # così la consultazione non si ferma al limite dei KPI a 30 giorni.
+    if selected_family in aggregate_prefixes:
+        selected_family_listings_data = df[
+            (df["category"] == selected_category)
+            & df["Famiglia"].astype(str).str.startswith(
+                aggregate_prefixes[selected_family]
+            )
+        ].copy()
+    else:
+        selected_family_listings_data = df[
+            (df["category"] == selected_category)
+            & (df["Famiglia"] == selected_family)
+        ].copy()
 
     fk1, fk2, fk3, fk4 = st.columns(4)
 
@@ -1958,7 +1974,7 @@ if selected_rows:
         )
 
     family_listings = (
-        selected_family_data
+        selected_family_listings_data
         .sort_values(
             "detected_sold_at",
             ascending=False,
