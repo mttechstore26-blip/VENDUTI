@@ -1207,15 +1207,69 @@ def detect_family(title, category=None):
             if re.search(pattern, text):
                 return label
 
-        # Monitor
+        # Monitor: modello specifico prima della marca generica.
         if re.search(r"\bmonitor\b|\bdisplay\b", text):
-            if re.search(r"\bodyssey\b", text):
-                return "Samsung Odyssey"
-            if re.search(r"\bultragear\b", text):
-                return "LG UltraGear"
-            if re.search(r"\bproart\b", text):
-                return "ASUS ProArt"
-            return "Monitor"
+            monitor_patterns = [
+                (r"\bphilips\s+cm8833(?:[/\s-]*00g)?\b", "Monitor • Philips CM8833"),
+
+                (r"\bmsi\b.*\bmag\s*274qf[\s-]*x24\b", "Monitor • MSI MAG 274QF-X24"),
+                (r"\bmsi\b.*\boptix\s+g27c7\b", "Monitor • MSI Optix G27C7"),
+                (r"\bmsi\b.*\bmag301cr2\b", "Monitor • MSI MAG301CR2"),
+                (r"\bmsi\b.*\b345cqr\b", "Monitor • MSI 345CQR"),
+
+                (r"\bktc\b.*\bh32s17\b", "Monitor • KTC H32S17"),
+                (r"\bktc\b.*\bh27t7p[\s-]*2\b", "Monitor • KTC H27T7P-2"),
+                (r"\bktc\b.*\bh27e6\b", "Monitor • KTC H27E6"),
+                (r"\bktc\b.*\bm27t20\b", "Monitor • KTC M27T20"),
+
+                (r"\bsamsung\b.*\b(?:odyssey|odissey)\b.*\bg5\b.*\b34\b", "Monitor • Samsung Odyssey G5 34"),
+                (r"\bsamsung\b.*\b(?:odyssey|odissey)\b.*\bg5\b.*\b27\b", "Monitor • Samsung Odyssey G5 27"),
+                (r"\bsamsung\b.*\bsmart\s+monitor\s+m7\b", "Monitor • Samsung Smart Monitor M7"),
+
+                (r"\blg\b.*\b27ul500[\s-]*w\b", "Monitor • LG 27UL500-W"),
+                (r"\blg\b.*\b27gr93u\b", "Monitor • LG UltraGear 27GR93U"),
+
+                (r"\bbenq\b.*\bew3270u\b", "Monitor • BenQ EW3270U"),
+            ]
+            for pattern, label in monitor_patterns:
+                if re.search(pattern, text):
+                    return label
+
+            # Famiglie utili quando il modello esatto non è presente.
+            if re.search(r"\bmsi\b", text):
+                return "Monitor • MSI"
+            if re.search(r"\bktc\b", text):
+                return "Monitor • KTC"
+            if re.search(r"\bsamsung\b.*\b(?:odyssey|odissey)\b", text):
+                return "Monitor • Samsung Odyssey"
+            if re.search(r"\bsamsung\b", text):
+                return "Monitor • Samsung"
+            if re.search(r"\blg\b.*\bultragear\b", text):
+                return "Monitor • LG UltraGear"
+            if re.search(r"\blg\b", text):
+                return "Monitor • LG"
+            if re.search(r"\bphilips\b", text):
+                return "Monitor • Philips"
+            if re.search(r"\baoc\b", text):
+                return "Monitor • AOC"
+            if re.search(r"\blenovo\b", text):
+                return "Monitor • Lenovo"
+            if re.search(r"\bbenq\b", text):
+                return "Monitor • BenQ"
+            if re.search(r"\bproart\b|\basus\b", text):
+                return "Monitor • ASUS"
+
+            # Specifiche tecniche, solo quando manca marca/modello.
+            if re.search(r"\bmini[\s-]*led\b", text):
+                return "Monitor • Mini-LED"
+            if re.search(r"\bultrawide\b|\b21\s*[:/]\s*9\b", text):
+                return "Monitor • Ultrawide"
+            if re.search(r"\b300\s*hz\b", text):
+                return "Monitor • 300Hz"
+            if re.search(r"\bgaming\b", text):
+                return "Monitor • Gaming generico"
+
+            return "Monitor • Altro"
 
         # Router / Mesh / networking
         networking_patterns = [
