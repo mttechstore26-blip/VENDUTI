@@ -146,14 +146,19 @@ def normalize_text(value):
         .replace("insta 360", "insta360")
         .replace("metà", "meta")
         .replace("iohone", "iphone")
-        .replace("iphonee", "iphone")
-        .replace("iphon", "iphone")
         .replace("i phone", "iphone")
         .replace("readmi", "redmi")
         .replace("hawei", "huawei")
         .replace("asuz", "asus")
     )
     text = re.sub(r"[^a-z0-9\s]", " ", text)
+
+    # Corregge typo iPhone solo come parole intere.
+    # Importante: non usare str.replace("iphon", "iphone"),
+    # perché trasformerebbe anche "iphone" corretto in "iphonee".
+    text = re.sub(r"\biphonee\b", "iphone", text)
+    text = re.sub(r"\biphon\b", "iphone", text)
+
     return re.sub(r"\s+", " ", text).strip()
 
 
