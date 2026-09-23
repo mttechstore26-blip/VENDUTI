@@ -1,4 +1,5 @@
 import re
+from functools import lru_cache
 from html import escape
 
 import pandas as pd
@@ -112,6 +113,7 @@ def format_delta(value):
     return f"{value:+.1f}%"
 
 
+@lru_cache(maxsize=20000)
 def normalize_text(value):
     text = str(value or "").lower()
     text = (
@@ -162,6 +164,7 @@ def normalize_text(value):
     return re.sub(r"\s+", " ", text).strip()
 
 
+@lru_cache(maxsize=50000)
 def detect_family(title, category=None):
     text = normalize_text(title)
     category_text = normalize_text(category or "")
@@ -2420,6 +2423,7 @@ def aggregate(group):
 
 
 @st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def prepare_data():
     """Carica e prepara i dati una sola volta per ciclo cache.
 
@@ -2452,8 +2456,10 @@ def prepare_data():
         & data["detected_sold_at"].notna()
     ].copy()
 
+    # Usa stringhe stabili così la cache della classificazione viene riutilizzata
+    # tra i rerun della pagina e tra titoli/categorie ripetuti.
     data["Famiglia"] = [
-        detect_family(title, category)
+        detect_family(str(title or ""), str(category or ""))
         for title, category in zip(data["title"], data["category"])
     ]
     data = apply_recurring_families(data)
