@@ -186,14 +186,42 @@ def detect_family(title, category=None):
         if re.search(pattern, text):
             return label
 
+    # iPad: separa generazioni/modelli e non confonde gli accessori.
+    if re.search(r"\bipad\b", text):
+        if re.search(r"\bmagic\s+keyboard\b", text):
+            return "iPad • Accessori"
+
+        if re.search(r"\bipad\s+pro\b", text):
+            return "iPad Pro"
+        if re.search(r"\bipad\s+air\b", text):
+            return "iPad Air"
+        if re.search(r"\bipad\s+mini\b", text):
+            return "iPad mini"
+
+        # iPad A16 (modello base 2025)
+        if re.search(r"\bipad\s+a16\b", text):
+            return "iPad A16"
+
+        # Varianti testuali: 10 gen, 10th, 10ª generazione, ecc.
+        generation_patterns = [
+            (10, r"\bipad\b.*\b(?:10|10th|10a|10o)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b10\s*(?:gen|generazione|generation)\b"),
+            (9, r"\bipad\b.*\b(?:9|9th|9a|9o|nove)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b9\s*(?:gen|generazione|generation)\b"),
+            (8, r"\bipad\b.*\b(?:8|8th|8a|8o)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b8\s*(?:gen|generazione|generation)\b"),
+            (7, r"\bipad\b.*\b(?:7|7th|7a|7o)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b7\s*(?:gen|generazione|generation)\b"),
+            (6, r"\bipad\b.*\b(?:6|6th|6a|6o)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b6\s*(?:gen|generazione|generation)\b"),
+            (5, r"\bipad\b.*\b(?:5|5th|5a|5o)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b5\s*(?:gen|generazione|generation)\b"),
+            (4, r"\bipad\b.*\b(?:4|4th|4a|4o)\b(?:\s*(?:gen|generazione|generation))?|\bipad\b.*\b4\s*(?:gen|generazione|generation)\b"),
+        ]
+        for generation, pattern in generation_patterns:
+            if re.search(pattern, text):
+                return f"iPad {generation}ª gen"
+
+        return "iPad • Modello non identificato"
+
     apple_patterns = [
         (r"\bmacbook\s*pro\b", "MacBook Pro"),
         (r"\bmacbook\s*air\b", "MacBook Air"),
         (r"\bimac\b", "iMac"),
-        (r"\bipad\s*pro\b", "iPad Pro"),
-        (r"\bipad\s*air\b", "iPad Air"),
-        (r"\bipad\s*mini\b", "iPad mini"),
-        (r"\bipad\b", "iPad"),
     ]
     for pattern, label in apple_patterns:
         if re.search(pattern, text):
