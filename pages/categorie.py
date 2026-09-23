@@ -813,7 +813,16 @@ def detect_family(title, category=None):
             ):
                 return "Pokémon • Graded"
 
-            # 2. Sigillato: box, ETB, blister, booster, SPC e prodotti sealed.
+            # 2. 30° anniversario come segmento dedicato.
+            # Ha priorità sul sigillato: un ETB del 30° deve restare nel segmento anniversario.
+            if re.search(
+                r"\b30\s*(?:th|o|°)?\s*annivers|\b30\s*esimo\b|"
+                r"\btrentesimo\b|\bprimi\s+compagni\b",
+                text,
+            ):
+                return "Pokémon • 30° Anniversario"
+
+            # 3. Sigillato: box, ETB, blister, booster, SPC e prodotti sealed.
             if re.search(
                 r"\betb\b|\bbox\b|\bblister\b|\bbooster\b|"
                 r"\bspc\b|\bsealed\b|\bsigillat|\bdisplay\b|"
@@ -821,14 +830,6 @@ def detect_family(title, category=None):
                 text,
             ):
                 return "Pokémon • Sigillato"
-
-            # 3. 30° anniversario come segmento dedicato.
-            if re.search(
-                r"\b30\s*(?:th|o|°)?\s*annivers|\b30\s*esimo\b|"
-                r"\btrentesimo\b|\bprimi\s+compagni\b",
-                text,
-            ):
-                return "Pokémon • 30° Anniversario"
 
             # 4. Vintage / set storici.
             if re.search(
