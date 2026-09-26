@@ -2696,6 +2696,165 @@ family_stats["Trend_volume_%"] = family_stats.apply(
     axis=1,
 )
 
+# ---------------------------------------------------------
+# CASH COW / PRODOTTI DA RICOMPRARE
+# ---------------------------------------------------------
+# Non abbiamo il costo reale di acquisto: quindi il "margine" non viene inventato.
+# Usiamo stabilità del prezzo di rivendita come proxy di prevedibilità e mostriamo
+# una soglia d'acquisto indicativa all'80% della mediana (spread lordo teorico 20%,
+# prima di spedizioni, commissioni, resi e altri costi).
+family_quality = (
+    detail
+    .groupby("Famiglia")
+    .agg(
+        Prezzo_q25=("price", lambda s: s.quantile(0.25)),
+        Prezzo_q75=("price", lambda s: s.quantile(0.75)),
+        Entro_24h_pct=("sale_time_hours", lambda s: (s <= 24).mean() * 100),
+    )
+    .reset_index()
+)
+
+family_stats = family_stats.merge(
+    family_quality,
+    on="Famiglia",
+    how="left",
+)
+
+family_stats["Dispersione_prezzo_%"] = family_stats.apply(
+    lambda row: (
+        ((row["Prezzo_q75"] - row["Prezzo_q25"]) / row["Prezzo_mediano"]) * 100
+        if pd.notna(row["Prezzo_mediano"]) and row["Prezzo_mediano"] > 0
+        and pd.notna(row["Prezzo_q25"]) and pd.notna(row["Prezzo_q75"])
+        else pd.NA
+    ),
+    axis=1,
+)
+
+# Score 0-100:
+# 35 volume, 30 velocità, 20 stabilità prezzo, 15 continuità tra i due periodi.
+family_stats["Score_volume"] = (
+    family_stats["Venduti"].rank(pct=True, method="average") * 35
+)
+
+family_stats["Score_velocita"] = family_stats["Tempo_mediano_ore"].apply(
+    lambda hours: (
+        max(0.0, 30 * (1 - min(float(hours), 168.0) / 168.0))
+        if pd.notna(hours)
+        else 0.0
+    )
+)
+
+family_stats["Score_stabilita"] = family_stats["Dispersione_prezzo_%"].apply(
+    lambda dispersion: (
+        max(0.0, 20 * (1 - min(float(dispersion), 50.0) / 50.0))
+        if pd.notna(dispersion)
+        else 0.0
+    )
+)
+
+family_stats["Score_continuita"] = family_stats.apply(
+    lambda row: (
+        15.0
+        if row["Venduti_prec"] >= max(2, row["Venduti"] * 0.35)
+        else (7.5 if row["Venduti_prec"] > 0 else 0.0)
+    ),
+    axis=1,
+)
+
+family_stats["CashCow_score"] = (
+    family_stats["Score_volume"]
+    + family_stats["Score_velocita"]
+    + family_stats["Score_stabilita"]
+    + family_stats["Score_continuita"]
+).round(0).clip(0, 100)
+
+family_stats["Prezzo_max_acquisto"] = family_stats["Prezzo_mediano"] * 0.80
+
+def cash_cow_signal(row):
+    reasons = []
+
+    if row["Venduti"] >= max(5, family_stats["Venduti"].median()):
+        reasons.append("alto volume")
+    if pd.notna(row["Tempo_mediano_ore"]) and row["Tempo_mediano_ore"] <= 48:
+        reasons.append("vendita rapida")
+    if pd.notna(row["Dispersione_prezzo_%"]) and row["Dispersione_prezzo_%"] <= 20:
+        reasons.append("prezzo stabile")
+    if row["Venduti_prec"] > 0:
+        reasons.append("domanda continua")
+
+    if not reasons:
+        reasons.append("campione da monitorare")
+
+    return " · ".join(reasons[:3])
+
+cash_cow = family_stats[
+    (family_stats["Venduti"] >= 3)
+    & (family_stats["Prezzo_mediano"].notna())
+    & (family_stats["Prezzo_mediano"] > 0)
+    & (~family_stats["Famiglia"].astype(str).str.contains(
+        "Altro|non identificato",
+        case=False,
+        regex=True,
+        na=False,
+    ))
+].copy()
+
+cash_cow["Insight"] = cash_cow.apply(cash_cow_signal, axis=1)
+cash_cow["Score"] = cash_cow["CashCow_score"].apply(lambda x: f"{int(x)}/100")
+cash_cow["Prezzo rivendita"] = cash_cow["Prezzo_mediano"].apply(format_price)
+cash_cow["Compra max*"] = cash_cow["Prezzo_max_acquisto"].apply(format_price)
+cash_cow["Rotazione"] = cash_cow["Tempo_mediano_ore"].apply(format_speed)
+cash_cow["Stabilità prezzo"] = cash_cow["Dispersione_prezzo_%"].apply(
+    lambda x: f"IQR {x:.0f}%" if pd.notna(x) else "-"
+)
+
+cash_cow = cash_cow.sort_values(
+    ["CashCow_score", "Venduti", "Tempo_mediano_ore"],
+    ascending=[False, False, True],
+).head(5)
+
+st.markdown("### 🐄 Cash Cow — cosa ricomprare con continuità")
+
+if not cash_cow.empty:
+    st.dataframe(
+        cash_cow[
+            [
+                "Famiglia",
+                "Score",
+                "Venduti",
+                "Rotazione",
+                "Prezzo rivendita",
+                "Compra max*",
+                "Stabilità prezzo",
+                "Insight",
+            ]
+        ],
+        width="stretch",
+        hide_index=True,
+    )
+
+    best_cash_cow = cash_cow.iloc[0]
+    st.success(
+        f"🐄 Miglior candidato: {best_cash_cow['Famiglia']} — "
+        f"{int(best_cash_cow['CashCow_score'])}/100, "
+        f"{int(best_cash_cow['Venduti'])} venduti in 30 giorni, "
+        f"tempo mediano {format_duration(best_cash_cow['Tempo_mediano_ore'])}."
+    )
+
+    st.caption(
+        "* Compra max = 80% del prezzo mediano osservato: lascia uno spread lordo teorico "
+        "del 20% prima di spedizione, commissioni, resi e altri costi. "
+        "Il punteggio combina volume (35%), velocità (30%), stabilità del prezzo (20%) "
+        "e continuità della domanda (15%). Non è un margine reale finché non inseriamo "
+        "anche il tuo costo d'acquisto effettivo."
+    )
+else:
+    st.info(
+        "Dati ancora insufficienti per individuare Cash Cow affidabili in questa categoria."
+    )
+
+st.markdown("### 🧩 Brand / famiglie / modelli")
+
 family_stats["Prezzo"] = family_stats["Prezzo_mediano"].apply(format_price)
 family_stats["Tempo vendita"] = family_stats["Tempo_mediano_ore"].apply(format_speed)
 family_stats["Trend 30 gg"] = family_stats["Trend_volume_%"].apply(format_delta)
@@ -3251,5 +3410,4 @@ with col2:
         width="stretch",
         hide_index=True,
     )
-
 
