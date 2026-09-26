@@ -1734,6 +1734,10 @@ def detect_family(title, category=None):
             (r"\bbft\b", "Automazione cancelli • BFT"),
             (r"\b(?:motore|kit)\b.*\b(?:cancello|apricancello)\b|\bapricancello\b", "Automazione cancelli • Altro"),
 
+            # Batterie/caricabatterie per utensili: prima delle regole di marca.
+            (r"\bbatteri[ae]\b.*\b(?:milwaukee|bosch|dewalt|makita|parkside)\b|\b(?:milwaukee|bosch|dewalt|makita|parkside)\b.*\bbatteri[ae]\b", "Utensili • Batterie"),
+            (r"\bcaricabatteri[ae]\b.*\b(?:milwaukee|bosch|dewalt|makita|parkside)\b|\b(?:milwaukee|bosch|dewalt|makita|parkside)\b.*\bcaricabatteri[ae]\b", "Utensili • Caricabatterie"),
+
             # Milwaukee / Bosch / DeWalt / Makita / Parkside: prima i tipi più utili.
             (r"\bmilwaukee\b.*\b(?:tassellatore|martello|demolitore)\b|\b(?:tassellatore|martello|demolitore)\b.*\bmilwaukee\b", "Utensili • Milwaukee Tassellatori"),
             (r"\bmilwaukee\b.*\bm18\b|\bm18\b.*\bmilwaukee\b", "Utensili • Milwaukee M18"),
@@ -1793,9 +1797,6 @@ def detect_family(title, category=None):
             (r"\brittal\b.*\bsk\s*3302\s*100\b|\bsk\s*3302\s*100\b", "Quadri elettrici • Rittal SK3302100"),
             (r"\brittal\b", "Quadri elettrici • Rittal"),
 
-            # Batterie/caricabatterie per utensili: famiglia separata dal corpo macchina.
-            (r"\bbatteri[ae]\b.*\b(?:milwaukee|bosch|dewalt|makita|parkside)\b|\b(?:milwaukee|bosch|dewalt|makita|parkside)\b.*\bbatteri[ae]\b", "Utensili • Batterie"),
-            (r"\bcaricabatteri[ae]\b.*\b(?:milwaukee|bosch|dewalt|makita|parkside)\b|\b(?:milwaukee|bosch|dewalt|makita|parkside)\b.*\bcaricabatteri[ae]\b", "Utensili • Caricabatterie"),
         ]
 
         for pattern, label in garden_patterns:
