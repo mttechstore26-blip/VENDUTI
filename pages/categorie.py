@@ -2785,16 +2785,33 @@ def cash_cow_signal(row):
 
     return " · ".join(reasons[:3])
 
+generic_cash_cow_families = {
+    "PlayStation",
+    "Xbox",
+    "Nintendo",
+    "Canon",
+    "Nikon",
+    "Sony",
+    "Samsung",
+    "Apple",
+    "Fotocamere",
+    "Console",
+    "Smartphone",
+    "Tablet",
+    "Computer",
+}
+
 cash_cow = family_stats[
     (family_stats["Venduti"] >= 3)
     & (family_stats["Prezzo_mediano"].notna())
     & (family_stats["Prezzo_mediano"] > 0)
     & (~family_stats["Famiglia"].astype(str).str.contains(
-        "Altro|non identificato",
+        "Altro|non identificato|non specificat",
         case=False,
         regex=True,
         na=False,
     ))
+    & (~family_stats["Famiglia"].astype(str).isin(generic_cash_cow_families))
 ].copy()
 
 cash_cow["Insight"] = cash_cow.apply(cash_cow_signal, axis=1)
