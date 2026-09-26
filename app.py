@@ -319,7 +319,6 @@ dashboard = st.Page(
     "pages/dashboard.py",
     title="Dashboard",
     icon="📊",
-    default=True,
 )
 
 annunci = st.Page(
@@ -332,6 +331,7 @@ categorie = st.Page(
     "pages/categorie.py",
     title="Categorie",
     icon="🏷️",
+    default=True,
 )
 
 prezzi = st.Page(
@@ -350,9 +350,8 @@ trend = st.Page(
 pg = st.navigation(
     {
         "MT TECH Market Intelligence": [
-            dashboard,
-            annunci,
             categorie,
+            annunci,
             prezzi,
             trend,
         ]
