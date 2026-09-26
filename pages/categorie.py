@@ -2783,15 +2783,19 @@ family_stats["Dispersione_prezzo_%"] = family_stats.apply(
     axis=1,
 )
 
-# Score 0-100:
-# 35 volume, 30 velocità, 20 stabilità prezzo, 15 continuità tra i due periodi.
-family_stats["Score_volume"] = (
-    family_stats["Venduti"].rank(pct=True, method="average") * 35
+# Score 0-100 orientato al sourcing:
+# 50 volume, 25 velocità, 15 stabilità prezzo, 10 continuità.
+# Il volume usa una scala relativa al leader della categoria, così i prodotti
+# realmente liquidi vengono premiati molto più dei campioni piccoli.
+max_family_volume = max(float(family_stats["Venduti"].max()), 1.0)
+
+family_stats["Score_volume"] = family_stats["Venduti"].apply(
+    lambda sold: 50.0 * (float(sold) / max_family_volume) ** 0.5
 )
 
 family_stats["Score_velocita"] = family_stats["Tempo_mediano_ore"].apply(
     lambda hours: (
-        max(0.0, 30 * (1 - min(float(hours), 168.0) / 168.0))
+        max(0.0, 25 * (1 - min(float(hours), 168.0) / 168.0))
         if pd.notna(hours)
         else 0.0
     )
@@ -2799,7 +2803,7 @@ family_stats["Score_velocita"] = family_stats["Tempo_mediano_ore"].apply(
 
 family_stats["Score_stabilita"] = family_stats["Dispersione_prezzo_%"].apply(
     lambda dispersion: (
-        max(0.0, 20 * (1 - min(float(dispersion), 50.0) / 50.0))
+        max(0.0, 15 * (1 - min(float(dispersion), 50.0) / 50.0))
         if pd.notna(dispersion)
         else 0.0
     )
@@ -2807,9 +2811,9 @@ family_stats["Score_stabilita"] = family_stats["Dispersione_prezzo_%"].apply(
 
 family_stats["Score_continuita"] = family_stats.apply(
     lambda row: (
-        15.0
+        10.0
         if row["Venduti_prec"] >= max(2, row["Venduti"] * 0.35)
-        else (7.5 if row["Venduti_prec"] > 0 else 0.0)
+        else (5.0 if row["Venduti_prec"] > 0 else 0.0)
     ),
     axis=1,
 )
@@ -2868,7 +2872,7 @@ generic_cash_cow_families = {
 }
 
 cash_cow = family_stats[
-    (family_stats["Venduti"] >= 3)
+    (family_stats["Venduti"] >= 5)
     & (family_stats["Prezzo_mediano"].notna())
     & (family_stats["Prezzo_mediano"] > 0)
     & (~family_stats["Famiglia"].astype(str).str.contains(
@@ -2942,8 +2946,9 @@ if not cash_cow.empty:
     st.caption(
         "* Compra max = 80% del prezzo mediano osservato: lascia uno spread lordo teorico "
         "del 20% prima di spedizione, commissioni, resi e altri costi. "
-        "Il punteggio combina volume (35%), velocità (30%), stabilità del prezzo (20%) "
-        "e continuità della domanda (15%). Non è un margine reale finché non inseriamo "
+        "Il punteggio combina volume (50%), velocità (25%), stabilità del prezzo (15%) "
+        "e continuità della domanda (10%). Servono almeno 5 vendite negli ultimi 30 giorni. "
+        "Non è un margine reale finché non inseriamo "
         "anche il tuo costo d'acquisto effettivo."
     )
 else:
