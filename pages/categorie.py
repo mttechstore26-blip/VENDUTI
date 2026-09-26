@@ -1761,10 +1761,31 @@ def detect_family(title, category=None):
             (r"\bfresatrice\b", "Utensili • Fresatrici"),
             (r"\blevigatrice\b", "Utensili • Levigatrici"),
 
+            # Elettroutensili / officina: seconda passata sui residui chiari.
+            (r"\bmultifunzione\b.*\b(?:bosch|makita|dewalt|milwaukee|einhell|parkside)\b|\b(?:bosch|makita|dewalt|milwaukee|einhell|parkside)\b.*\bmultifunzione\b", "Utensili • Multifunzione"),
+            (r"\bsegatrice\b|\btroncatrice\b", "Utensili • Segatrici / Troncatrici"),
+            (r"\bsega\s+a\s+nastro\b", "Utensili • Sega a nastro"),
+            (r"\bpialla\b", "Utensili • Pialle"),
+            (r"\bchiodatrice\b|\bgraffettatrice\b", "Utensili • Chiodatrici / Graffettatrici"),
+            (r"\bavvolgicavo\b|\bprolunga\b.*\bcavo\b", "Officina • Avvolgicavi / Prolunghe"),
+            (r"\bcassetta\b.*\battrezzi\b|\bvaligia\b.*\battrezzi\b|\bset\b.*\battrezzi\b", "Officina • Set attrezzi"),
+            (r"\bcarrello\b.*\battrezzi\b|\bcarrello\s+officina\b", "Officina • Carrelli attrezzi"),
+            (r"\bmorsa\b.*\bbanco\b|\bmorsa\b", "Officina • Morse"),
+            (r"\bcric\b|\bsollevatore\b.*\bauto\b", "Officina • Cric / Sollevatori"),
+
             # Saldatura / officina
             (r"\btelwin\b", "Saldatura • Telwin"),
             (r"\bsaldatrice\b|\bsaldatura\b", "Saldatura • Altro"),
             (r"\bcompressore\b", "Officina • Compressori"),
+
+            # Irrigazione / cura del verde.
+            (r"\birrigator\w*\b|\bcentralina\b.*\birrigazion\w*\b", "Giardino • Irrigazione"),
+            (r"\btubo\b.*\birrigazion\w*\b|\bavvolgitubo\b", "Giardino • Irrigazione"),
+            (r"\bforbici\b.*\bpotatura\b|\bcesoie\b.*\bpotatura\b", "Giardino • Potatura"),
+            (r"\bpotatore\b|\bpotatrice\b", "Giardino • Potatura"),
+            (r"\bbiotrituratore\b|\btrituratore\b.*\brami\b", "Giardino • Biotrituratori"),
+            (r"\bscarificatore\b|\barieggiatore\b", "Giardino • Scarificatori / Arieggiatori"),
+            (r"\bspaccalegna\b", "Giardino • Spaccalegna"),
 
             # Attrezzatura da giardino a motore / batteria
             (r"\bshindaiwa\b.*\bt[\s-]*27\b|\bt[\s-]*27\b.*\bshindaiwa\b", "Giardino • Shindaiwa T-27"),
@@ -1779,6 +1800,13 @@ def detect_family(title, category=None):
             (r"\btagliasiepi\b", "Giardino • Tagliasiepi"),
             (r"\btagliaerba\b|\brasaerba\b", "Giardino • Tagliaerba"),
 
+            # Scale / edilizia leggera / misurazione.
+            (r"\bscala\b.*\b(?:alluminio|telescopica|professionale)\b", "Fai da te • Scale"),
+            (r"\blivella\s+laser\b|\blaser\s+livella\b", "Fai da te • Livelle laser"),
+            (r"\btelemetro\b", "Fai da te • Telemetri"),
+            (r"\bmisuratore\b.*\blaser\b", "Fai da te • Misuratori laser"),
+            (r"\brilevatore\b.*\b(?:cavi|metalli|parete)\b", "Fai da te • Rilevatori"),
+
             # Pulizia esterni / pompe / energia
             (r"\bkarcher\b|\bkärcher\b", "Pulizia esterni • Kärcher"),
             (r"\bidropulitrice\b", "Pulizia esterni • Idropulitrici"),
@@ -1788,6 +1816,11 @@ def detect_family(title, category=None):
 
             # Fotovoltaico
             (r"\bfotovoltaic\w*\b|\bpannell[io]\s+solari?\b", "Fotovoltaico"),
+
+            # Verniciatura / aria compressa.
+            (r"\bpistola\b.*\bverniciatura\b|\bspruzzatore\b.*\bvernice\b", "Fai da te • Verniciatura"),
+            (r"\baerografo\b", "Fai da te • Aerografi"),
+            (r"\bcompressore\b.*\bportatile\b", "Officina • Compressori"),
 
             # Barbecue / cottura esterna
             (r"\bweber\b.*\bbarbecue\b|\bbarbecue\b.*\bweber\b", "Barbecue • Weber"),
