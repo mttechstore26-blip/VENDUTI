@@ -499,6 +499,11 @@ def detect_family(title, category=None):
         return f"GoPro Hero {generation}"
 
     # Fotografia: riconoscimento marca + modello reale.
+    # Canon EOS 2000D può comparire anche senza la parola "Canon" nel titolo.
+    # Il codice modello 2000D identifica la Canon EOS 2000D.
+    if re.search(r"\b2000d\b", text):
+        return "Canon 2000D"
+
     # Evita famiglie troppo generiche come solo "Canon", "Nikon" o "Sony".
     camera_patterns = [
         # Canon reflex / mirrorless
