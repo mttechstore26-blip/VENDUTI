@@ -2648,8 +2648,6 @@ with c4:
     )
 
 
-st.markdown("### 🧩 Brand / famiglie / modelli")
-
 family_current = (
     detail
     .groupby("Famiglia")
