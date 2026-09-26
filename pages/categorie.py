@@ -1709,6 +1709,99 @@ def detect_family(title, category=None):
             if re.search(pattern, text):
                 return label
 
+    # Giardino e fai da te: classificazione dedicata ai titoli reali rimasti in Altro.
+    # Manteniamo famiglie utili per il sourcing: marca/modello quando riconoscibile,
+    # altrimenti tipologia di prodotto. Le regole valgono solo dentro questa categoria.
+    if "giardino" in category_text or "fai da te" in category_text:
+        garden_patterns = [
+            # Robot tagliaerba / automazione prato
+            (r"\bworx\s+landroid\b", "Robot tagliaerba • Worx Landroid"),
+            (r"\bbosch\s+indego\b|\bindego\b", "Robot tagliaerba • Bosch Indego"),
+            (r"\bhusqvarna\s+automower\b|\bautomower\b", "Robot tagliaerba • Husqvarna Automower"),
+            (r"\brobot\b.*\btagliaerba\b|\btagliaerba\b.*\brobot\b", "Robot tagliaerba • Altro"),
+
+            # Piscina / robot pulizia
+            (r"\bdolphin\b.*\be10\b|\be10\b.*\bdolphin\b", "Piscina • Dolphin E10"),
+            (r"\bdolphin\b", "Piscina • Dolphin"),
+            (r"\bzodiac\b", "Piscina • Zodiac"),
+            (r"\brobot\b.*\bpiscina\b|\bpiscina\b.*\brobot\b", "Piscina • Robot pulizia"),
+            (r"\bpompa\b.*\bpiscina\b|\bfiltro\b.*\bpiscina\b", "Piscina • Pompe e filtri"),
+
+            # Automazione cancelli
+            (r"\bducati\b.*\b(?:cancello|apricancello)\b|\b(?:cancello|apricancello)\b.*\bducati\b", "Automazione cancelli • Ducati"),
+            (r"\bfaac\b", "Automazione cancelli • FAAC"),
+            (r"\bcame\b", "Automazione cancelli • CAME"),
+            (r"\bbft\b", "Automazione cancelli • BFT"),
+            (r"\b(?:motore|kit)\b.*\b(?:cancello|apricancello)\b|\bapricancello\b", "Automazione cancelli • Altro"),
+
+            # Milwaukee / Bosch / DeWalt / Makita / Parkside: prima i tipi più utili.
+            (r"\bmilwaukee\b.*\b(?:tassellatore|martello|demolitore)\b|\b(?:tassellatore|martello|demolitore)\b.*\bmilwaukee\b", "Utensili • Milwaukee Tassellatori"),
+            (r"\bmilwaukee\b.*\bm18\b|\bm18\b.*\bmilwaukee\b", "Utensili • Milwaukee M18"),
+            (r"\bmilwaukee\b", "Utensili • Milwaukee"),
+            (r"\bbosch\b.*\b(?:tassellatore|martello|demolitore)\b|\b(?:tassellatore|martello|demolitore)\b.*\bbosch\b", "Utensili • Bosch Tassellatori"),
+            (r"\bbosch\b.*\b(?:professional|gbh|gsb|gws|gdr|gdx)\b", "Utensili • Bosch Professional"),
+            (r"\bdewalt\b", "Utensili • DeWalt"),
+            (r"\bmakita\b", "Utensili • Makita"),
+            (r"\bparkside\b", "Utensili • Parkside"),
+            (r"\bhilti\b", "Utensili • Hilti"),
+            (r"\bmetabo\b", "Utensili • Metabo"),
+            (r"\beinhell\b", "Utensili • Einhell"),
+
+            # Utensili per tipologia, anche senza marca.
+            (r"\btassellator\w*\b|\bmartello\s+demolitore\b", "Utensili • Tassellatori / Demolitori"),
+            (r"\btrapano\b.*\bavvitatore\b|\bavvitatore\b.*\btrapano\b", "Utensili • Trapani / Avvitatori"),
+            (r"\bavvitatore\b", "Utensili • Avvitatori"),
+            (r"\btrapano\b", "Utensili • Trapani"),
+            (r"\bsmerigliatrice\b|\bflex\b", "Utensili • Smerigliatrici"),
+            (r"\bseghetto\b|\bsega\s+circolare\b|\bsega\s+alternativa\b", "Utensili • Seghe elettriche"),
+            (r"\bfresatrice\b", "Utensili • Fresatrici"),
+            (r"\blevigatrice\b", "Utensili • Levigatrici"),
+
+            # Saldatura / officina
+            (r"\btelwin\b", "Saldatura • Telwin"),
+            (r"\bsaldatrice\b|\bsaldatura\b", "Saldatura • Altro"),
+            (r"\bcompressore\b", "Officina • Compressori"),
+
+            # Attrezzatura da giardino a motore / batteria
+            (r"\bshindaiwa\b.*\bt[\s-]*27\b|\bt[\s-]*27\b.*\bshindaiwa\b", "Giardino • Shindaiwa T-27"),
+            (r"\bshindaiwa\b", "Giardino • Shindaiwa"),
+            (r"\bstihl\b.*\bbg\s*56\b|\bbg\s*56\b.*\bstihl\b", "Giardino • Stihl BG56"),
+            (r"\bstihl\b", "Giardino • Stihl"),
+            (r"\bhusqvarna\b.*\b129\s*lk\b|\b129\s*lk\b.*\bhusqvarna\b", "Giardino • Husqvarna 129LK"),
+            (r"\bhusqvarna\b", "Giardino • Husqvarna"),
+            (r"\bdecespugliator\w*\b", "Giardino • Decespugliatori"),
+            (r"\bsoffiator\w*\b", "Giardino • Soffiatori"),
+            (r"\bmotosega\b", "Giardino • Motoseghe"),
+            (r"\btagliasiepi\b", "Giardino • Tagliasiepi"),
+            (r"\btagliaerba\b|\brasaerba\b", "Giardino • Tagliaerba"),
+
+            # Pulizia esterni / pompe / energia
+            (r"\bkarcher\b|\bkärcher\b", "Pulizia esterni • Kärcher"),
+            (r"\bidropulitrice\b", "Pulizia esterni • Idropulitrici"),
+            (r"\bgeneratore\b|\bgruppo\s+elettrogeno\b", "Energia • Generatori"),
+            (r"\binverter\b", "Energia • Inverter"),
+            (r"\bpompa\s+sommersa\b|\belettropompa\b|\bautoclave\b", "Pompe / Autoclavi"),
+
+            # Fotovoltaico
+            (r"\bfotovoltaic\w*\b|\bpannell[io]\s+solari?\b", "Fotovoltaico"),
+
+            # Barbecue / cottura esterna
+            (r"\bweber\b.*\bbarbecue\b|\bbarbecue\b.*\bweber\b", "Barbecue • Weber"),
+            (r"\bbarbecue\b|\bbbq\b", "Barbecue • Altro"),
+
+            # Quadri elettrici / climatizzazione tecnica
+            (r"\brittal\b.*\bsk\s*3302\s*100\b|\bsk\s*3302\s*100\b", "Quadri elettrici • Rittal SK3302100"),
+            (r"\brittal\b", "Quadri elettrici • Rittal"),
+
+            # Batterie/caricabatterie per utensili: famiglia separata dal corpo macchina.
+            (r"\bbatteri[ae]\b.*\b(?:milwaukee|bosch|dewalt|makita|parkside)\b|\b(?:milwaukee|bosch|dewalt|makita|parkside)\b.*\bbatteri[ae]\b", "Utensili • Batterie"),
+            (r"\bcaricabatteri[ae]\b.*\b(?:milwaukee|bosch|dewalt|makita|parkside)\b|\b(?:milwaukee|bosch|dewalt|makita|parkside)\b.*\bcaricabatteri[ae]\b", "Utensili • Caricabatterie"),
+        ]
+
+        for pattern, label in garden_patterns:
+            if re.search(pattern, text):
+                return label
+
     # Elettrodomestici: secondo pass basato sui titoli reali rimasti in Altro.
     if "elettrodomestici" in category_text or "eletrodomestici" in category_text:
         appliance_patterns = [
