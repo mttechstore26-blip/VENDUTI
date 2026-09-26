@@ -215,28 +215,11 @@ def detect_family(title, category=None):
         return "PlayStation Portal"
 
     console_patterns = [
-        # PlayStation: prima le varianti più specifiche, poi i modelli generici.
-        # In questo modo "PS5 Slim Digital" non viene assorbita da "PS5 Digital".
+        # PlayStation 5: per il sourcing raggruppiamo per generazione hardware.
+        # Digital / disco della PS5 base confluiscono in PS5.
+        # Digital / disco della Slim confluiscono in PS5 Slim.
         (r"\b(?:ps5|playstation\s*5)\b.*\bpro\b", "PS5 Pro"),
-        (
-            r"\b(?:ps5|playstation\s*5)\b.*\bslim\b.*\b(?:digital|digitale|senza\s+lettore|no\s+lettore)\b"
-            r"|\b(?:ps5|playstation\s*5)\b.*\b(?:digital|digitale|senza\s+lettore|no\s+lettore)\b.*\bslim\b",
-            "PS5 Slim Digital",
-        ),
-        (
-            r"\b(?:ps5|playstation\s*5)\b.*\bslim\b.*\b(?:disco|disc|lettore)\b"
-            r"|\b(?:ps5|playstation\s*5)\b.*\b(?:disco|disc|lettore)\b.*\bslim\b",
-            "PS5 Slim con disco",
-        ),
         (r"\b(?:ps5|playstation\s*5)\b.*\bslim\b", "PS5 Slim"),
-        (
-            r"\b(?:ps5|playstation\s*5)\b.*\b(?:digital|digitale|senza\s+lettore|no\s+lettore)\b",
-            "PS5 Digital",
-        ),
-        (
-            r"\b(?:ps5|playstation\s*5)\b.*\b(?:disco|disc|con\s+lettore|standard\s+edition)\b",
-            "PS5 con disco",
-        ),
         (r"\bps5\b|\bplaystation\s*5\b", "PS5"),
         (r"\b(?:ps4|playstation\s*4)\b.*\bpro\b", "PS4 Pro"),
         (r"\bps4\b|\bplaystation\s*4\b", "PS4"),
