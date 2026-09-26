@@ -2738,6 +2738,58 @@ family_stats = family_stats.merge(
     how="left",
 )
 
+# PS5: nelle Cash Cow serve anche una vista aggregata della piattaforma.
+# Le varianti restano comunque separate nella tabella famiglie e per il prezzo d'acquisto.
+ps5_current = detail[
+    detail["Famiglia"].astype(str).str.match(
+        r"^PS5(?:$|\s)",
+        na=False,
+    )
+].copy()
+
+ps5_previous = detail_prev[
+    detail_prev["Famiglia"].astype(str).str.match(
+        r"^PS5(?:$|\s)",
+        na=False,
+    )
+].copy()
+
+if not ps5_current.empty:
+    ps5_prices = ps5_current["price"].dropna()
+    ps5_hours = ps5_current["sale_time_hours"].dropna()
+    ps5_venduti = len(ps5_current)
+    ps5_venduti_prec = len(ps5_previous)
+
+    ps5_aggregate = pd.DataFrame([{
+        "Famiglia": "PS5 — tutte le versioni",
+        "Venduti": ps5_venduti,
+        "Prezzo_mediano": ps5_prices.median() if not ps5_prices.empty else pd.NA,
+        "Tempo_mediano_ore": ps5_hours.median() if not ps5_hours.empty else pd.NA,
+        "Venduti_prec": ps5_venduti_prec,
+        "Prezzo_mediano_prec": (
+            ps5_previous["price"].median()
+            if not ps5_previous.empty
+            else pd.NA
+        ),
+        "Trend_volume_%": (
+            ((ps5_venduti - ps5_venduti_prec) / ps5_venduti_prec) * 100
+            if ps5_venduti_prec > 0
+            else pd.NA
+        ),
+        "Prezzo_q25": ps5_prices.quantile(0.25) if not ps5_prices.empty else pd.NA,
+        "Prezzo_q75": ps5_prices.quantile(0.75) if not ps5_prices.empty else pd.NA,
+        "Entro_24h_pct": (
+            (ps5_hours <= 24).mean() * 100
+            if not ps5_hours.empty
+            else pd.NA
+        ),
+    }])
+
+    family_stats = pd.concat(
+        [ps5_aggregate, family_stats],
+        ignore_index=True,
+    )
+
 family_stats["Dispersione_prezzo_%"] = family_stats.apply(
     lambda row: (
         ((row["Prezzo_q75"] - row["Prezzo_q25"]) / row["Prezzo_mediano"]) * 100
@@ -2789,6 +2841,17 @@ family_stats["CashCow_score"] = (
 family_stats["Prezzo_max_acquisto"] = family_stats["Prezzo_mediano"] * 0.80
 
 def cash_cow_signal(row):
+    if row["Famiglia"] == "PS5 — tutte le versioni":
+        reasons = ["domanda PS5 aggregata"]
+
+        if pd.notna(row["Tempo_mediano_ore"]) and row["Tempo_mediano_ore"] <= 48:
+            reasons.append("vendita rapida")
+        if row["Venduti_prec"] > 0:
+            reasons.append("domanda continua")
+
+        reasons.append("prezzo: vedi variante")
+        return " · ".join(reasons[:3])
+
     reasons = []
 
     if row["Venduti"] >= max(5, family_stats["Venduti"].median()):
@@ -2838,6 +2901,11 @@ cash_cow["Insight"] = cash_cow.apply(cash_cow_signal, axis=1)
 cash_cow["Score"] = cash_cow["CashCow_score"].apply(lambda x: f"{int(x)}/100")
 cash_cow["Prezzo rivendita"] = cash_cow["Prezzo_mediano"].apply(format_price)
 cash_cow["Compra max*"] = cash_cow["Prezzo_max_acquisto"].apply(format_price)
+
+ps5_aggregate_mask = cash_cow["Famiglia"] == "PS5 — tutte le versioni"
+cash_cow.loc[ps5_aggregate_mask, "Prezzo rivendita"] = "vedi varianti"
+cash_cow.loc[ps5_aggregate_mask, "Compra max*"] = "vedi varianti"
+
 cash_cow["Rotazione"] = cash_cow["Tempo_mediano_ore"].apply(format_speed)
 cash_cow["Stabilità prezzo"] = cash_cow["Dispersione_prezzo_%"].apply(
     lambda x: f"IQR {x:.0f}%" if pd.notna(x) else "-"
@@ -2846,7 +2914,19 @@ cash_cow["Stabilità prezzo"] = cash_cow["Dispersione_prezzo_%"].apply(
 cash_cow = cash_cow.sort_values(
     ["CashCow_score", "Venduti", "Tempo_mediano_ore"],
     ascending=[False, False, True],
-).head(5)
+)
+
+# Se esiste domanda PS5 aggregata, la rendiamo sempre visibile senza falsarne lo score.
+if (cash_cow["Famiglia"] == "PS5 — tutte le versioni").any():
+    ps5_row = cash_cow[
+        cash_cow["Famiglia"] == "PS5 — tutte le versioni"
+    ]
+    other_rows = cash_cow[
+        cash_cow["Famiglia"] != "PS5 — tutte le versioni"
+    ].head(4)
+    cash_cow = pd.concat([ps5_row, other_rows], ignore_index=True)
+else:
+    cash_cow = cash_cow.head(5)
 
 st.markdown("### 🐄 Cash Cow — cosa ricomprare con continuità")
 
