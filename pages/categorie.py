@@ -2583,13 +2583,14 @@ def aggregate(group):
     )
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def prepare_data():
     """Carica e prepara i dati una sola volta per ciclo cache.
 
     Questa è la parte più costosa della pagina: parsing date, calcolo tempi,
-    riconoscimento famiglie e clustering. Tenerla in cache rende i rerun
-    causati da selectbox/dataframe praticamente immediati.
+    riconoscimento famiglie e clustering. La cache di 10 minuti evita che
+    il clustering venga rieseguito mentre si passa rapidamente da una
+    categoria all'altra.
     """
     data = load_market_data().copy()
 
