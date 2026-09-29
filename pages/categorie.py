@@ -169,6 +169,10 @@ def detect_family(title, category=None):
     text = normalize_text(title)
     category_text = normalize_text(category or "")
 
+    # Logitech G29: unifica tutte le varianti dello stesso volante.
+    if re.search(r"\blogitech\b.*\bg29\b|\bg29\b.*\blogitech\b", text):
+        return "Logitech G29"
+
     # Kobo: separa i modelli più rilevanti per il sourcing in Informatica.
     # Gestisce anche "color" senza u e il typo reale "Lepsa 2E".
     if re.search(r"\bkobo\b", text):
