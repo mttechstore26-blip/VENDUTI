@@ -3098,9 +3098,33 @@ else:
 
 st.markdown("### 🧩 Brand / famiglie / modelli")
 
-family_stats["Prezzo"] = family_stats["Prezzo_mediano"].apply(format_price)
-family_stats["Tempo vendita"] = family_stats["Tempo_mediano_ore"].apply(format_speed)
-family_stats["Trend 30 gg"] = family_stats["Trend_volume_%"].apply(format_delta)
+# La classifica famiglie deve riflettere tutto lo storico disponibile (max 90 giorni),
+# non soltanto gli ultimi 30 giorni. Le metriche recenti restano separate nel
+# campo "Trend 30 gg" e nella sezione Cash Cow.
+family_stats_display = family_stats.copy()
+
+family_history_counts = (
+    df[df["category"] == selected_category]
+    .groupby("Famiglia")
+    .agg(Venduti_storici=("id", "count"))
+    .reset_index()
+)
+
+family_stats_display = family_stats_display.merge(
+    family_history_counts,
+    on="Famiglia",
+    how="left",
+)
+
+family_stats_display["Venduti"] = (
+    family_stats_display["Venduti_storici"]
+    .fillna(family_stats_display["Venduti"])
+    .astype(int)
+)
+
+family_stats_display["Prezzo"] = family_stats_display["Prezzo_mediano"].apply(format_price)
+family_stats_display["Tempo vendita"] = family_stats_display["Tempo_mediano_ore"].apply(format_speed)
+family_stats_display["Trend 30 gg"] = family_stats_display["Trend_volume_%"].apply(format_delta)
 
 # Viste aggregate oltre alle sottofamiglie.
 if selected_category and "collezionismo" in normalize_text(selected_category):
@@ -3155,17 +3179,17 @@ if selected_category and "collezionismo" in normalize_text(selected_category):
             aggregate_rows.append(aggregate_row)
 
     if aggregate_rows:
-        family_stats = pd.concat(
-            aggregate_rows + [family_stats],
+        family_stats_display = pd.concat(
+            aggregate_rows + [family_stats_display],
             ignore_index=True,
         )
 
-family_stats = family_stats.sort_values(
+family_stats_display = family_stats_display.sort_values(
     ["Venduti", "Tempo_mediano_ore"],
     ascending=[False, True],
 )
 
-family_table = family_stats[
+family_table = family_stats_display[
     [
         "Famiglia",
         "Venduti",
