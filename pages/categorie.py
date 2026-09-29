@@ -169,6 +169,14 @@ def detect_family(title, category=None):
     text = normalize_text(title)
     category_text = normalize_text(category or "")
 
+    # Kobo: separa i modelli più rilevanti per il sourcing in Informatica.
+    # Gestisce anche "color" senza u e il typo reale "Lepsa 2E".
+    if re.search(r"\\bkobo\\b", text):
+        if re.search(r"\\blibra\\s+(?:colour|color)\\b", text):
+            return "Kobo Libra Colour"
+        if re.search(r"\\b(?:elipsa|lepsa)\\s*2e?\\b|\\b(?:elipsa|lepsa)\\b", text):
+            return "Kobo Elipsa"
+
     # iPhone: parser robusto che ignora memoria, colore e formattazioni del titolo.
     # Gestisce anche forme come iphone13, iphone 11pro, iphone 14promax, 16e, X/XS e SE.
     if re.search(r"\biphone", text):
